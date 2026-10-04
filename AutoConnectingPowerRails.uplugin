@@ -1,0 +1,38 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0.0",
+	"FriendlyName": "Auto-Connecting Power Rails",
+	"Description": "A power backbone for modular factories: conductive rails and junctions that snap together, auto-connect across blueprint boundaries, and feed the rest of the factory through outlets.",
+	"Category": "Modding",
+	"CreatedBy": "ZeeOcho",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "AutoConnectingPowerRails",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	],
+	"BuiltInInitialFeatureState": "Active",
+	"Plugins": [
+		{
+			"Name": "SML",
+			"Enabled": true,
+			"SemVersion": "^3.12.0"
+		},
+		{
+			"Name": "AbstractInstance",
+			"Enabled": true
+		}
+	],
+	"SemVersion": "1.0.0",
+	"GameVersion": ">=502094"
+}
