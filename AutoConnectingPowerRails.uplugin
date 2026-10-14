@@ -3,7 +3,7 @@
 	"Version": 1,
 	"VersionName": "1.0.0",
 	"FriendlyName": "Auto-Connecting Power Rails",
-	"Description": "A power backbone for modular factories: conductive rails and junctions that snap together, auto-connect across blueprint boundaries, and feed the rest of the factory through outlets.",
+	"Description": "Power, but through auto-connecting rails and junctions that snap together,  and feed the rest of the factory through outlets.",
 	"Category": "Modding",
 	"CreatedBy": "ZeeOcho",
 	"CreatedByURL": "",
@@ -30,9 +30,11 @@
 		},
 		{
 			"Name": "AbstractInstance",
-			"Enabled": true
+			"Enabled": true,
+			"BasePlugin": true
 		}
 	],
 	"SemVersion": "1.0.0",
-	"GameVersion": ">=502094"
+	"GameVersion": ">=502094",
+	"GameFeature": true
 }
