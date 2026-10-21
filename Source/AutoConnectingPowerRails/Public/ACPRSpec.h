@@ -21,6 +21,15 @@
 
 namespace ACPRSpec
 {
+	/**
+	 * B.3: a terminal's outward direction is quantized per component to 1/DirectionQuantum before
+	 * §6.1 compares it — exact negation, no dot product. The quantum must separate every direction
+	 * placement can produce (fine rotation steps of 5°: sin 5° = 0.087, so 100 steps per unit tells
+	 * them apart with room) and must swallow the floating-point noise between two sides derived
+	 * from the same mating transform (~1e-6). The 1 uu position lattice is the same idea for places.
+	 */
+	constexpr int32 DirectionQuantum = 100;
+
 	/** The build grid: one metre, and the half cell every lattice phase is measured in (§7.1, §11). */
 	constexpr float CellSize = 100.0f;
 	constexpr float HalfCell = CellSize * 0.5f;

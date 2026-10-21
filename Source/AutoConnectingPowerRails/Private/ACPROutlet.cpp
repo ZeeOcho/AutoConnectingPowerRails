@@ -238,8 +238,11 @@ void AACPROutlet::BeginPlay()
 	// §8.3: "Dismantling a host also dismantles dependent Outlets with full refunds, previewed."
 	FACPRAttachments::Register( mHostActor, this );
 
-	// A freshly built Outlet wears its host's swatch. A loaded one keeps its own.
-	if( !WasLoadedFromSave() )
+	// §5.5: a freshly built Outlet wears its host's swatch; a blueprint-placed one
+	// does so when its host adopted at this placement (a host that begins play later reaches the
+	// Outlet through its attachment list instead); a loaded one keeps its own.
+	const IACPRTerminalHost* hostOfOutlet = Cast< IACPRTerminalHost >( mHostActor );
+	if( !WasLoadedFromSave() || ( WasPlacedFromBlueprint() && hostOfOutlet && hostOfOutlet->AdoptedAtPlacement() ) )
 	{
 		FACPRIndicators::AdoptSwatch( this, mHostActor, ACPR_TAG_TEXT( OUTLET ) );
 	}
@@ -341,8 +344,13 @@ bool AACPROutlet::GetTerminalLocalFrame( uint8 index, FTransform& out_frame ) co
 
 void AACPROutlet::RefreshIndicators()
 {
-	// One cue slot; terminal 0 is the mount interface, which is what the Outlet's state IS.
-	const FACPRIndicatorSlot slots[] = { { mOutletMesh.Get(), ACPRSlot::Cue(), 0 } };
+	// One cue slot. On a terminal the mount interface IS the Outlet's state — coupled to the host
+	// terminal, powered with the network — so the slot reports terminal 0. On a body there is no
+	// coupling to report: the mount stays open by design (IsBodyBondedTo) while the socket draws
+	// from the host all the same, so the slot reports the host summary, powered or not, and never
+	// the mount's "open".
+	const int32 reported = mHostMode == EACPROutletHostMode::Body ? ACPR_INDICATOR_HOST : 0;
+	const FACPRIndicatorSlot slots[] = { { mOutletMesh.Get(), ACPRSlot::Cue(), reported } };
 	FACPRIndicators::Push( this, this, MakeArrayView( slots ), ACPR_TAG_TEXT( OUTLET ) );
 }
 
@@ -552,17 +560,13 @@ void AACPROutlet::PlaceMountInterface()
 	}
 	mMountInterface->SetWorldLocationAndRotation( location, FRotationMatrix::MakeFromX( -outward ).ToQuat() );
 
-	// And the quantized axis, which the transform does not carry: B.3 makes the opposing test exact
-	// integer equality on a separately set reduced direction. The host terminal's own reduced outward
-	// is set by the host at its BeginPlay; if that has not run yet (a loaded host after this Outlet),
-	// the same integer is derived here from the saved frame the way the host derives it — the delta
-	// of two quantized points — so the pair compares equal whichever side placed first.
+	// And the quantized axis (B.3): the host terminal's own, negated, when the host has set it; the
+	// host's outward quantized from the same frame otherwise (a loaded host after this Outlet), so
+	// the pair compares equal whichever side placed first.
 	FIntVector hostOutward = hostTerminal->GetQuantizedOutward();
 	if( hostOutward == FIntVector( 0, 0, 0 ) )
 	{
-		hostOutward = UACPRTerminalComponent::ReduceDirection(
-			UACPRTerminalComponent::QuantizeLocation( location + outward * 100.0 )
-			- UACPRTerminalComponent::QuantizeLocation( location ) );
+		hostOutward = UACPRTerminalComponent::QuantizeDirection( outward );
 	}
 	mMountInterface->SetQuantizedOutward( FIntVector( -hostOutward.X, -hostOutward.Y, -hostOutward.Z ) );
 }

@@ -121,6 +121,8 @@ public:
 
 	UPROPERTY( VisibleAnywhere, Category = "ACPR|Outlet" )
 	TObjectPtr< class UWidgetComponent > mConnectionsWidgetComponent = nullptr;	virtual bool WasPlacedFromBlueprint() const override { return mPlacedFromBlueprint; }
+	virtual bool AdoptedAtPlacement() const override { return mAdoptedAtPlacement; }
+	virtual void SetAdoptedAtPlacement() override { mAdoptedAtPlacement = true; }
 
 	/** §10.1. AFGBuildable::mBlueprintDesigner, our own protected field (FGBuildable.h:1014). */
 	virtual class AFGBuildableBlueprintDesigner* GetHostDesigner() const override;
@@ -384,4 +386,7 @@ private:
 
 	/** Set by PostSerializedFromBlueprint( false ): this host was placed as part of a blueprint. */
 	bool mPlacedFromBlueprint = false;
+
+	/** Set when this placed host took the network's customization (IACPRTerminalHost::AdoptedAtPlacement). */
+	bool mAdoptedAtPlacement = false;
 };

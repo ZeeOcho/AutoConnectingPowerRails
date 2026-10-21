@@ -540,8 +540,6 @@ void AACPRJunction::PlaceTerminals()
 	// B.2: "Keep the Junction actor origin at the exact centre of its 1 m cube." So a face centre
 	// is exactly mHalfExtent out along its axis, and §11's 1 m lane pitch falls out of the cube
 	// rather than being asserted somewhere else.
-	const FIntVector centreCell = UACPRTerminalComponent::QuantizeLocation( GetActorLocation() );
-
 	for( int32 i = 0; i < mTerminals.Num() && i < (int32)UE_ARRAY_COUNT( ACPRJunctionFaces ); ++i )
 	{
 		UACPRTerminalComponent* terminal = mTerminals[ i ];
@@ -560,20 +558,17 @@ void AACPRJunction::PlaceTerminals()
 			ACPRJunctionFaces[ i ].Rotation );
 	}
 
-	// The outward direction is DERIVED from quantized positions, exactly as B.3 requires for the
-	// Rail — "derive a Rail's outward axis from its two quantized endpoints rather than storing a
-	// separately quantized angle". Here the two points are the face centre and the cube centre.
-	//
-	// Doing it this way rather than rotating the authored axis is what keeps a Junction's outward
-	// directions in the same number system as a Rail's, so §6.1's opposing test stays an integer
-	// equality across the two classes. It also survives a rotated Junction: a 45° roll gives a
-	// delta like (35,35,0), which reduces to (1,1,0) — still exact, still comparable.
-	for( int32 i = 0; i < mTerminals.Num(); ++i )
+	// The outward direction is the face's authored axis turned by the actor's rotation, quantized
+	// onto the direction grid (B.3) — the same number system a Rail's actor axis lands in, so §6.1's
+	// opposing test stays an integer equality across the two classes at every rotation the build gun
+	// can give a Junction, fine steps included.
+	const FQuat rotation = GetActorQuat();
+	for( int32 i = 0; i < mTerminals.Num() && i < (int32)UE_ARRAY_COUNT( ACPRJunctionFaces ); ++i )
 	{
 		if( UACPRTerminalComponent* terminal = mTerminals[ i ] )
 		{
 			terminal->SetQuantizedOutward(
-				UACPRTerminalComponent::ReduceDirection( terminal->GetQuantizedLocation() - centreCell ) );
+				UACPRTerminalComponent::QuantizeDirection( rotation.RotateVector( ACPRJunctionFaces[ i ].Axis ) ) );
 		}
 	}
 

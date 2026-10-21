@@ -202,8 +202,10 @@ void AACPRCapHologram::CheckValidFloor()
 {
 	// Vanilla's floor-angle rule is relaxed for the same reason the Junction's is: a Cap goes wherever a
 	// terminal points — straight out of a wall-mounted Rail's end, or down off a Junction's bottom face.
-	// The rule itself is ACPRHologram::FloorRuleAdmitsSuper.
-	if( ACPRHologram::FloorRuleAdmitsSuper( GetMinPlacementFloorZ(), mAim, false, mFloorLog, ACPR_TAG_TEXT( CAP_HOLO ) ) )
+	// The rule itself is ACPRHologram::FloorRuleAdmitsSuper; with a terminal targeted the Cap is
+	// attached and the terminal decides the position, so vanilla's floor trace (which lands on
+	// whatever is under the terminal) has nothing to say. Without one, Super runs.
+	if( ACPRHologram::FloorRuleAdmitsSuper( GetMinPlacementFloorZ(), mAim, mHasTarget, mFloorLog, ACPR_TAG_TEXT( CAP_HOLO ) ) )
 	{
 		Super::CheckValidFloor();
 	}

@@ -1016,19 +1016,17 @@ void AACPRRail::CreateTerminals()
 	place( mTerminalA, 0.0f,   180.0f, TEXT( "TerminalA" ) );
 	place( mTerminalB, length,   0.0f, TEXT( "TerminalB" ) );
 
-	// B.3: the outward axis is derived from the two quantized endpoints, not stored as a separately
-	// quantized angle — so it is exactly consistent with the cells §6.1 compares, and "opposing"
-	// becomes an integer equality instead of a dot product with a tolerance.
+	// B.3: the outward axis is the actor's X (B.2's beam axis), quantized onto the direction grid —
+	// never derived from the two rounded endpoints, whose reduced delta depends on the Rail's length
+	// and so never agrees with a 50 uu Junction face at any angle but 0°, 45° and 90°.
 	//
 	// Each terminal points away from the other, which is what §5.1's "a snapped Rail continues
 	// along the terminal's outward axis" means at each end.
 	if( mTerminalA && mTerminalB )
 	{
-		const FIntVector cellA = mTerminalA->GetQuantizedLocation();
-		const FIntVector cellB = mTerminalB->GetQuantizedLocation();
-
-		mTerminalA->SetQuantizedOutward( UACPRTerminalComponent::ReduceDirection( cellA - cellB ) );
-		mTerminalB->SetQuantizedOutward( UACPRTerminalComponent::ReduceDirection( cellB - cellA ) );
+		const FVector axis = GetActorForwardVector();
+		mTerminalA->SetQuantizedOutward( UACPRTerminalComponent::QuantizeDirection( -axis ) );
+		mTerminalB->SetQuantizedOutward( UACPRTerminalComponent::QuantizeDirection( axis ) );
 	}
 }
 

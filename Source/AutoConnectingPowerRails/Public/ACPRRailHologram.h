@@ -672,6 +672,9 @@ private:
 	/** Last distance GetNudgeDistance returned, so each MODE logs once rather than only the first. */
 	mutable float mLastLoggedNudgeDistance = -1.0f;
 
+	/** The terminal AdoptVanillaSnapAsAnchor last warned about, so a per-frame re-snap warns once. */
+	TWeakObjectPtr< UACPRTerminalComponent > mOffAnchorWarned;
+
 	// ---------------------------------------------------------------------------------------
 	// §10.1 — the build space this placement is in
 	// ---------------------------------------------------------------------------------------

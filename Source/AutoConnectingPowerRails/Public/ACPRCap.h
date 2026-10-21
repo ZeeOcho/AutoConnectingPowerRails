@@ -319,4 +319,7 @@ private:
 
 	/** Set by PostLoadGame, read at BeginPlay. A loaded Cap re-applies; a built one applies fresh. */
 	bool mCameFromSave = false;
+
+	/** Set by PostSerializedFromBlueprint( false ): this Cap was placed as part of a blueprint. */
+	bool mPlacedFromBlueprint = false;
 };

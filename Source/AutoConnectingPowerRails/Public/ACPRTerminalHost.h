@@ -141,6 +141,18 @@ public:
 	virtual bool WasPlacedFromBlueprint() const { return false; }
 
 	/**
+	 * §5.5's witness for a placed blueprint: true once this host, placed as part of a blueprint, took
+	 * the network's customization during this placement. Not saved: it only has to outlive the
+	 * placement's BeginPlay sequence. It is what lets the colour travel through the blueprint in
+	 * every BeginPlay order — a host whose neighbour adopted takes the same colour from it, while a
+	 * part the blueprint was SAVED with is never a source (a standalone placement keeps its saved
+	 * colours).
+	 * Defaults because only hosts that can be blueprinted need to answer.
+	 */
+	virtual bool AdoptedAtPlacement() const { return false; }
+	virtual void SetAdoptedAtPlacement() {}
+
+	/**
 	 * §12's highlight, written by whichever hologram is aiming at this host and read
 	 * by FACPRIndicators::Push. Defaults do nothing, so a host without cue surfaces can ignore it;
 	 * the Rail and the Junction store it and re-push their indicators at once when it changes.
@@ -358,18 +370,30 @@ struct AUTOCONNECTINGPOWERRAILS_API FACPRIndicators
 	                  TArrayView< const FACPRIndicatorSlot > slots, const TCHAR* tag );
 
 	/**
-	 * Swatch inheritance, tied to coupling rather than to snapping: a hologram that copied the host's
-	 * data at snap-accept would carry a custom swatch away when aimed off and placed unsnapped. So
-	 * nothing happens in the hologram. A freshly BUILT host adopts its first coupled partner's
-	 * customization the moment §6.1 couples them (FACPRCoupling::Resolve, hand-built path); a Cap or
-	 * Outlet adopts its host's at BeginPlay(built). Loaded and blueprint-placed actors keep what they
-	 * carry.
+	 * §5.5: the swatch is the circuit's colour. A part that joins a network wears the network's
+	 * customization — copied from its first coupled partner the moment §6.1 couples them (hand-built
+	 * host), from its first source partner at placement (blueprint-placed host, see Resolve), or
+	 * from its host at BeginPlay (Cap, Outlet; built or placed). Tied to coupling rather than to
+	 * snapping: a hologram that copied the host's data at snap-accept would carry a swatch away when
+	 * aimed off and placed unsnapped, so nothing happens in the hologram. The build gun's own choice
+	 * and a blueprint's saved colours yield to the network's; loaded parts are untouched. Returns
+	 * true when the customization changed.
 	 *
 	 * Server-side, through IFGColorInterface::SetCustomizationData_Native (FGColorInterface.h:22, which
 	 * applies as well); mCustomizationData is ReplicatedUsing, so clients follow. Read back in the log
 	 * line rather than assumed.
 	 */
-	static void AdoptSwatch( class AFGBuildable* built, const AActor* partnerActor, const TCHAR* tag );
+	static bool AdoptSwatch( class AFGBuildable* built, const AActor* partnerActor, const TCHAR* tag );
+
+	/**
+	 * After a blueprint-placed host adopted: every part of the SAME placed blueprint that the seed
+	 * reaches through couplings and attachments adopts the seed's customization too, so the
+	 * blueprint joins the network in one colour. Bounded by the blueprint proxy
+	 * (AFGBuildable::GetBlueprintProxy, set by the blueprint hologram before BeginPlay): a part
+	 * outside the blueprint, or one from another placement, is never touched. A seed without a
+	 * proxy spreads nothing.
+	 */
+	static void SpreadSwatch( AActor* seedActor, const TCHAR* tag );
 
 	/** What a proxy holds, logged: the 20 custom data floats and the material in each slot. */
 	static void ReadBack( const class UFGColoredInstanceMeshProxy* proxy, const TCHAR* tag, const TCHAR* label );

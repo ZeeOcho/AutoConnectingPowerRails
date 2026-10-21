@@ -20,7 +20,7 @@
 // are scene components for the same reason.
 //
 // What a terminal does: position (its transform), outward axis (local +X), the quantized cell and
-// reduced outward direction §6.1 compares, its §4 state, its partner, its private-interface flag,
+// quantized outward direction §6.1 compares, its §4 state, its partner, its private-interface flag,
 // registry membership (EndPlay unregisters) and teardown: a terminal that is destroyed by any path
 // clears its partner's half through OnComponentDestroyed, the hook where vanilla's own connection
 // components leave their circuit (FGCircuitConnectionComponent.h:26).
@@ -115,21 +115,20 @@ public:
 	FIntVector GetQuantizedLocation() const { return QuantizeLocation( GetComponentLocation() ); }
 
 	/**
-	 * B.3: "Derive a Rail's outward axis from its two quantized endpoints rather than storing a
-	 * separately quantized angle."
-	 *
-	 * This is that axis, as a reduced integer direction — the endpoint delta divided by the GCD of
-	 * its components, so a 500 uu Rail and a 600 uu Rail pointing the same way both give (0,1,0).
-	 *
-	 * The point is that §6.1's "opposing" test becomes exact integer equality, `a == -b`, with no
-	 * dot product and no angle tolerance anywhere. The owner sets it, because only the owner knows
-	 * where its other endpoint is.
+	 * B.3: the outward axis, quantized from the owner's real transform onto the direction grid
+	 * (QuantizeDirection), so that §6.1's "opposing" test is exact integer equality, `a == -b`,
+	 * with no dot product and no angle tolerance anywhere. The owner sets it, because the owner
+	 * knows which of its axes is outward (a Rail's actor X, a Junction's rotated face axis).
 	 */
 	void SetQuantizedOutward( const FIntVector& direction ) { mQuantizedOutward = direction; }
 	FIntVector GetQuantizedOutward() const { return mQuantizedOutward; }
 
-	/** delta / gcd(|x|,|y|,|z|), or zero for a zero delta. */
-	static FIntVector ReduceDirection( const FIntVector& delta );
+	/**
+	 * A direction on the grid: each component of the unit vector times ACPRSpec::DirectionQuantum,
+	 * rounded half away from zero so that QuantizeDirection( -d ) == -QuantizeDirection( d ) — the
+	 * symmetry §6.1's negation test relies on. Zero for a zero vector.
+	 */
+	static FIntVector QuantizeDirection( const FVector& direction );
 
 	/**
 	 * §6.1: exactly coincident, opposing, and both open. No epsilon appears anywhere in here.

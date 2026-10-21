@@ -372,8 +372,6 @@ void FACPRBlueprintTerminalManager::Initialize( TArray< AFGBuildable* > buildabl
 		}
 
 		const double disc = ACPRDiscRadiusFor( buildable );
-		const AACPRRail* rail = Cast< AACPRRail >( buildable );
-		const bool isJunction = Cast< AACPRJunction >( buildable ) != nullptr;
 
 		if( mInitLogBudget > 0 )
 		{
@@ -412,22 +410,6 @@ void FACPRBlueprintTerminalManager::Initialize( TArray< AFGBuildable* > buildabl
 			entry.BuildableIndex = buildableIndex;
 			entry.TerminalIndex = index;
 			entry.DiscRadius = disc;
-
-			// The point §6.1 derives the outward from, by the placed host's own rule (see FBPTerminal).
-			if( rail )
-			{
-				FTransform other;
-				if( host->GetTerminalLocalFrame( static_cast< uint8 >( 1 - FMath::Min( t, 1 ) ), other ) )
-				{
-					entry.ReferenceLocal = other.GetLocation();
-					entry.HasReference = true;
-				}
-			}
-			else if( isJunction )
-			{
-				entry.ReferenceLocal = FVector::ZeroVector;
-				entry.HasReference = true;
-			}
 
 			const bool internal = host->GetSavedCouplings().ContainsByPredicate(
 				[ index, &members ]( const FACPRSavedCoupling& record )
@@ -835,17 +817,7 @@ bool FACPRBlueprintTerminalManager::ComputeFrame( const FBPTerminal& t, bool pla
 	out_frame.Up = world.GetUnitAxis( EAxis::Z );
 	out_frame.PQ = UACPRTerminalComponent::QuantizeLocation( out_frame.P );
 
-	if( t.HasReference )
-	{
-		const FIntVector reference = UACPRTerminalComponent::QuantizeLocation(
-			buildable.TransformPosition( t.ReferenceLocal ) );
-		out_frame.OutQ = UACPRTerminalComponent::ReduceDirection( out_frame.PQ - reference );
-	}
-	else
-	{
-		out_frame.OutQ = UACPRTerminalComponent::ReduceDirection(
-			UACPRTerminalComponent::QuantizeLocation( out_frame.P + out_frame.D * 100.0 ) - out_frame.PQ );
-	}
+	out_frame.OutQ = UACPRTerminalComponent::QuantizeDirection( out_frame.D );
 
 	return true;
 }
@@ -1116,10 +1088,10 @@ FACPRBlueprintTerminalManager::EPairFault FACPRBlueprintTerminalManager::Evaluat
 		return EPairFault::FarEndMisses;
 	}
 
-	// §6.1's integer opposition, predicted for BOTH ends by the Rail's own rule
-	// (ACPRRail.cpp: A = Reduce( cellA - cellB ), B = Reduce( cellB - cellA )).
-	const FIntVector railA = UACPRTerminalComponent::ReduceDirection( frame.PQ - farQ );
-	const FIntVector railB = ACPRNegate( railA );
+	// §6.1's integer opposition, predicted for BOTH ends by the Rail's own rule (ACPRRail.cpp: A is
+	// the actor axis negated, B the actor axis; the bridge's axis is frame.D).
+	const FIntVector railB = UACPRTerminalComponent::QuantizeDirection( frame.D );
+	const FIntVector railA = ACPRNegate( railB );
 
 	if( target->GetQuantizedOutward() != railA )
 	{
@@ -2340,31 +2312,23 @@ void FACPRBlueprintTerminalManager::Construct( TArray< AFGBuildable* >& out_Cons
 		++built;
 		++mBridgesBuilt;
 
-		// §10.6: "inherits BP-side customization". Checked on the built Rail rather than trusted; if vanilla's
-		// ConfigureActor did not carry it across, it is applied here through the colour interface's virtual.
-		bool customizationFixed = false;
-		if( plan.CustomizationSource &&
-			rail->GetCustomizationData_Native() != plan.CustomizationSource->GetCustomizationData_Native() )
-		{
-			if( IFGColorInterface* colour = Cast< IFGColorInterface >( rail ) )
-			{
-				colour->SetCustomizationData_Native( plan.CustomizationSource->GetCustomizationData_Native(), false );
-				customizationFixed = true;
-			}
-		}
-
+		// §10.6: the bridge STARTS with the BP-side customization — the hologram carries it into
+		// ConfigureActor, and the [ACPR-BRIDGE] line above reads it back — and then §5.5 applies to it
+		// as to any hand-built Rail: its BeginPlay, which ran inside Construct, adopted the network's
+		// customization from its far end. The swatch logged below is therefore the one it wears after
+		// that rule, and nothing here writes it.
 		const FIntVector cellA = UACPRTerminalComponent::QuantizeLocation( rail->GetActorLocation() );
 		const FIntVector cellB = UACPRTerminalComponent::QuantizeLocation(
 			rail->GetActorTransform().TransformPosition( FVector( rail->GetLength(), 0.0, 0.0 ) ) );
 
 		ACPR_LOG( Display, BP,
 			TEXT( "%s BUILT bridge #%d %s | length=%.1f (asked %.1f) | A=%s B=%s target=%s on %s | "
-			      "B coupled=1 | placed-vs-preview drift=%.2f uu | cost=[%s] | swatch=%s fixed=%d | proxy rail=%s host=%s" ),
+			      "B coupled=1 | placed-vs-preview drift=%.2f uu | cost=[%s] | swatch=%s | proxy rail=%s host=%s" ),
 			*mHologramName, plan.State, *rail->GetName(), rail->GetLength(), state.Length,
 			*DescribeCell( cellA ), *DescribeCell( cellB ),
 			*DescribeWorld( target ), target ? *DescribeCell( target->GetQuantizedLocation() ) : TEXT( "-" ),
 			plan.Drift, *bridgeCost,
-			*GetNameSafe( rail->GetCustomizationData_Native().SwatchDesc.Get() ), customizationFixed ? 1 : 0,
+			*GetNameSafe( rail->GetCustomizationData_Native().SwatchDesc.Get() ),
 			*GetNameSafe( rail->GetBlueprintProxy() ),
 			plan.PlacedHost ? *GetNameSafe( plan.PlacedHost->GetBlueprintProxy() ) : TEXT( "-" ) );
 

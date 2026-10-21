@@ -3,6 +3,7 @@
 #include "ACPRTerminalComponent.h"
 
 #include "ACPRDesignerSpace.h"
+#include "ACPRSpec.h"
 #include "ACPRTerminalHost.h"
 #include "ACPRTerminalRegistry.h"
 #include "AutoConnectingPowerRails.h"
@@ -130,24 +131,23 @@ FIntVector UACPRTerminalComponent::QuantizeLocation( const FVector& worldLocatio
 		FMath::RoundToInt( worldLocation.Z ) );
 }
 
-FIntVector UACPRTerminalComponent::ReduceDirection( const FIntVector& delta )
+FIntVector UACPRTerminalComponent::QuantizeDirection( const FVector& direction )
 {
-	// Euclid, on the absolute values.
-	auto gcd = []( int32 a, int32 b )
+	const FVector unit = direction.GetSafeNormal();
+	if( unit.IsZero() )
 	{
-		a = FMath::Abs( a );
-		b = FMath::Abs( b );
-		while( b != 0 )
-		{
-			const int32 t = b;
-			b = a % b;
-			a = t;
-		}
-		return a;
-	};
+		return FIntVector( 0, 0, 0 );
+	}
 
-	const int32 g = gcd( gcd( delta.X, delta.Y ), delta.Z );
-	return g > 0 ? FIntVector( delta.X / g, delta.Y / g, delta.Z / g ) : FIntVector( 0, 0, 0 );
+	// Half away from zero, by hand: the engine's rounding sends +x.5 and -x.5 to different
+	// magnitudes, and a direction and its negation have to quantize to exact negatives.
+	auto quantize = []( double component )
+	{
+		const double scaled = FMath::Abs( component ) * ACPRSpec::DirectionQuantum;
+		const int32 magnitude = static_cast< int32 >( FMath::FloorToDouble( scaled + 0.5 ) );
+		return component < 0.0 ? -magnitude : magnitude;
+	};
+	return FIntVector( quantize( unit.X ), quantize( unit.Y ), quantize( unit.Z ) );
 }
 
 bool UACPRTerminalComponent::CanCoupleWith( const UACPRTerminalComponent* other, bool checkSpace ) const
@@ -182,7 +182,7 @@ bool UACPRTerminalComponent::CanCoupleWith( const UACPRTerminalComponent* other,
 		return false;
 	}
 
-	// Opposing: the two reduced directions are exact negatives. Two Rails meeting end to end point
+	// Opposing: the two quantized directions are exact negatives. Two Rails meeting end to end point
 	// INTO each other, so (0,-1,0) meets (0,1,0). Two Rails meeting at a bend do not, and §5.1 is
 	// explicit that "a bend requires a Junction".
 	const FIntVector ours = GetQuantizedOutward();
@@ -209,7 +209,7 @@ FString UACPRTerminalComponent::Describe() const
 	const FIntVector cell = GetQuantizedLocation();
 
 	// The electrical fields live on the host's one connection (IACPRTerminalHost::GetPowerConnection);
-	// this line is the terminal's own facts: cell, reduced outward, occupant.
+	// this line is the terminal's own facts: cell, quantized outward, occupant.
 	return FString::Printf(
 		TEXT( "%s[%s] cell=(%d,%d,%d) out=(%d,%d,%d) to=%s%s%s" ),
 		*GetName(), state,

@@ -59,6 +59,8 @@ void AACPRCap::PostSerializedFromBlueprint( bool isBlueprintWorld )
 {
 	Super::PostSerializedFromBlueprint( isBlueprintWorld );
 
+	mPlacedFromBlueprint = !isBlueprintWorld;
+
 	// Fitted here for the blueprint world. AFGBlueprintHologram duplicates each blueprint-world
 	// buildable's mesh components as they are at duplication time, and BeginPlay never runs in that
 	// world. Everything this actor does to its meshes at BeginPlay — pick, scale, rotate — therefore
@@ -104,8 +106,11 @@ void AACPRCap::BeginPlay()
 	// ownership points this way rather than the host keeping a saved list of its own.
 	FACPRAttachments::Register( mHostActor, this );
 
-	// A freshly built Cap wears its host's swatch. A loaded one keeps its own.
-	if( !mCameFromSave )
+	// §5.5: a freshly built Cap wears its host's swatch; a blueprint-placed one
+	// does so when its host adopted at this placement (a host that begins play later reaches the
+	// Cap through its attachment list instead); a loaded one keeps its own.
+	const IACPRTerminalHost* host = Cast< IACPRTerminalHost >( mHostActor );
+	if( !mCameFromSave || ( mPlacedFromBlueprint && host && host->AdoptedAtPlacement() ) )
 	{
 		FACPRIndicators::AdoptSwatch( this, mHostActor, ACPR_TAG_TEXT( CAP ) );
 	}

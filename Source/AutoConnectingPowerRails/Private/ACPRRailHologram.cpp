@@ -2171,8 +2171,7 @@ const UACPRTerminalComponent* AACPRRailHologram::FindFarEndCoincidence() const
 	// Terminal B of the Rail this hologram builds: at `length` along the actor's X, outward +X.
 	const FVector forward = GetActorForwardVector();
 	const FIntVector farCell = UACPRTerminalComponent::QuantizeLocation( GetActorLocation() + forward * length );
-	const FIntVector railB = UACPRTerminalComponent::ReduceDirection(
-		farCell - UACPRTerminalComponent::QuantizeLocation( GetActorLocation() ) );
+	const FIntVector railB = UACPRTerminalComponent::QuantizeDirection( forward );
 
 	TArray< UACPRTerminalComponent* > inCell;
 	registry->FindInCell( farCell, nullptr, nullptr, inCell );
@@ -2231,18 +2230,30 @@ void AACPRRailHologram::AdoptVanillaSnapAsAnchor()
 	mAnchorUp = frame.GetUnitAxis( EAxis::Z );
 	CaptureRollBase( GetActorQuat() );
 
-	// Invariant 9's tripwire, not a fix: if vanilla ever places the near end off the terminal's cell or
-	// off its outward axis, the Coupling will not form and this says why. Once per adopted terminal.
+	// Invariant 9's tripwire, not a fix: the actor's LOCATION is vanilla's and is adopted as the anchor,
+	// so if vanilla ever puts the near end off the terminal's cell the Coupling will not form and this
+	// says why — once per terminal, because the adoption can repeat every frame vanilla re-snaps. The
+	// rotation is not vanilla's to decide: vanilla's attachment snap ignores a rolled face (a Junction
+	// turned by fine rotation gives it a horizontal beam), and the placement pins the actor to the
+	// terminal's outward afterwards (SetHologramLocationAndRotation), so a rotation disagreement is a
+	// Verbose note, not a fault.
 	const double offBy = FVector::Dist( GetActorLocation(), mAnchorPoint );
 	const double offDeg = FMath::RadiansToDegrees( FMath::Acos( FMath::Clamp(
 		FVector::DotProduct( GetActorForwardVector(), mAnchorOutward ), -1.0, 1.0 ) ) );
-	if( offBy > UACPRTerminalComponent::LatticeQuantum || offDeg > 1.0 )
+	if( offBy > UACPRTerminalComponent::LatticeQuantum && mOffAnchorWarned.Get() != terminal )
 	{
+		mOffAnchorWarned = terminal;
 		ACPR_LOG( Warning, RAIL_HOLO,
-			TEXT( "vanilla's attachment snap disagrees with the terminal frame | %s -> %s on %s | actor at %s facing %s | terminal at %s outward %s | off by %.1f uu, %.1f deg" ),
+			TEXT( "vanilla's attachment snap is off the terminal's cell | %s -> %s on %s | actor at %s | terminal at %s | off by %.1f uu" ),
 			*GetName(), *terminal->GetName(), *GetNameSafe( terminal->GetOwner() ),
-			*GetActorLocation().ToString(), *GetActorForwardVector().ToString(),
-			*mAnchorPoint.ToString(), *mAnchorOutward.ToString(), offBy, offDeg );
+			*GetActorLocation().ToString(), *mAnchorPoint.ToString(), offBy );
+	}
+	else if( offDeg > 1.0 && mSnapLog.IsOpen( ACPR_LOG_ACTIVE( Verbose ) ) && mSnapLog.Admit( TEXT( "rot:" ) + terminal->GetPathName() ) )
+	{
+		ACPR_LOG( Verbose, RAIL_HOLO,
+			TEXT( "vanilla's attachment snap faces %s where the terminal's outward is %s (%.1f deg) | %s -> %s on %s | the placement pins the outward" ),
+			*GetActorForwardVector().ToString(), *mAnchorOutward.ToString(), offDeg,
+			*GetName(), *terminal->GetName(), *GetNameSafe( terminal->GetOwner() ) );
 	}
 
 	if( mSnapLog.IsOpen( ACPR_LOG_ACTIVE( Verbose ) ) && mSnapLog.Admit( terminal->GetPathName() ) )

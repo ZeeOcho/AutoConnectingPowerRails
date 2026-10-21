@@ -187,8 +187,12 @@ void AACPROutletHologram::CheckValidFloor()
 {
 	// An Outlet mounts on whichever face is aimed at — a Rail's underside, a wall-mounted
 	// Rail's side, a Junction's bottom terminal — and vanilla's floor-angle rule refuses every one of
-	// those. The rule itself is ACPRHologram::FloorRuleAdmitsSuper.
-	if( ACPRHologram::FloorRuleAdmitsSuper( GetMinPlacementFloorZ(), mAim, false, mFloorLog, ACPR_TAG_TEXT( OUTLET_HOLO ) ) )
+	// those. The rule itself is ACPRHologram::FloorRuleAdmitsSuper, and with a mount accepted the
+	// Outlet is attached: §8.1/§8.2 let the host face decide the position, so there is no floor to
+	// validate — vanilla's own floor trace from a terminal-mounted position lands on whatever is
+	// under the terminal, a collar chamfer or a foundation edge, and reports that as uneven ground.
+	// Without a mount, Super runs so the sweep shows vanilla's messages.
+	if( ACPRHologram::FloorRuleAdmitsSuper( GetMinPlacementFloorZ(), mAim, mHasTarget, mFloorLog, ACPR_TAG_TEXT( OUTLET_HOLO ) ) )
 	{
 		Super::CheckValidFloor();
 	}

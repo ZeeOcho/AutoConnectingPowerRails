@@ -71,6 +71,8 @@ public:
 
 	/** The six faces as vanilla attachment points (FACPRAttachment). See AACPRRail's. */
 	virtual void GetAttachmentPoints( TArray< const FFGAttachmentPoint* >& out_points ) const override;	virtual bool WasPlacedFromBlueprint() const override { return mPlacedFromBlueprint; }
+	virtual bool AdoptedAtPlacement() const override { return mAdoptedAtPlacement; }
+	virtual void SetAdoptedAtPlacement() override { mAdoptedAtPlacement = true; }
 	/** §12's highlight: stored, and pushed at once when it changes. */
 	virtual void SetHighlight( const FACPRHighlight& highlight ) override;
 	virtual const FACPRHighlight* GetHighlight() const override { return &mHighlight; }
@@ -237,4 +239,7 @@ private:
 
 	/** Set by PostSerializedFromBlueprint( false ): this host was placed as part of a blueprint. */
 	bool mPlacedFromBlueprint = false;
+
+	/** Set when this placed host took the network's customization (IACPRTerminalHost::AdoptedAtPlacement). */
+	bool mAdoptedAtPlacement = false;
 };

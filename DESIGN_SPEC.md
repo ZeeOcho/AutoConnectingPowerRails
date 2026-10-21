@@ -228,10 +228,24 @@ common point of its six terminals. The worst case on a chain of maximum-length R
   under ordinary vanilla unlocks. All three are free (§13), and all survive blueprint save and
   placement, generated Rail construction, and Junction insertion.
 - **A fresh part wears the Foundation group's default swatch**, so an unpainted part is dark
-  infrastructure and the accent appears when someone paints it. **A hand-built Rail or Junction
-  takes its first coupled partner's customization when it couples** — not when it snaps, so
-  aiming away after a snap leaves nothing behind — and a Cap or Outlet takes its host's. Loaded
-  and blueprint-placed parts are untouched.
+  infrastructure and the accent appears when someone paints it.
+- **The swatch is the circuit's colour: a part that joins a network wears the network's
+  customization.** Colour is how a player tells circuits apart, so continuing a network continues
+  its colour, and a differently coloured branch on the same circuit is not something the mod
+  builds — build, then paint. A hand-built Rail or Junction takes its first coupled partner's
+  customization, in terminal order (a Rail its anchor end's), **when it couples** — not when it
+  snaps, so aiming away after a snap leaves nothing behind — and whatever swatch the build gun
+  carried; a part that couples to nothing keeps the gun's. A blueprint-placed host takes it from
+  its first coupled partner that is a source — a part not placed with the blueprint (the world,
+  a bridge) or a host of the same placement that adopted itself — and every part of the same
+  placement it reaches through couplings and attachments adopts too, so the blueprint joins the
+  network in one colour, its saved colours included, whatever order its parts begin play in. A
+  part the blueprint was saved with is never a source, so a placement that touches no network
+  keeps its saved colours. A Cap or Outlet takes its host's when built or placed. Loaded parts
+  are untouched: colour is copied at joining and never afterwards, so repainting a network is
+  the Customizer's job, part by part, as it is for vanilla.
+- A part that joins two differently coloured networks takes the first one, by the same terminal
+  order; the result is two-coloured, which is a true report of the circuits having been merged.
 - **Material-replacement recipes are not offered**, though vanilla structures support them:
   Concrete is the visual signal for the insulating Cap, so a Concrete Rail would read as exactly
   the thing that means "no coupling here".
@@ -625,8 +639,9 @@ order-dependence the immutable snapshot exists to avoid.
   offer: shown and validated, never priced or constructed. Its validity is re-established when its
   inputs change — the blueprint moved, a click — not every frame; between evaluations the last
   verdict stands.
-- The generated Rail inherits BP-side customization and roll, falling back to the saved
-  customization of the BP terminal's owning buildable.
+- The generated Rail starts with the BP-side customization and roll, falling back to the saved
+  customization of the BP terminal's owning buildable, and is then a hand-built Rail under §5.5:
+  it takes the network's customization from its far end.
 - It joins the placed blueprint's Blueprint Dismantle group; the pre-existing OB actor never
   changes ownership, and dismantling a generated Rail reopens both terminals and regenerates
   nothing.
@@ -805,7 +820,9 @@ as a row of lamps.
   that terminal is coupled to another Junction's terminal. It exists for the one configuration
   that buries a face entirely, and §6.2 makes that configuration reachable on purpose: two
   flush Junctions are either coupled or capped, so a dark joint is unambiguous.
-- **Outlet** — its rib grooves; the accent is the chamfered top ring of its cylinder.
+- **Outlet** — its rib grooves; the accent is the chamfered top ring of its cylinder. The grooves
+  show the Outlet's own state: on a terminal, the mount's (coupled, powered); on a body, the
+  host's power, since a body mount has no coupling to show and is never "open".
 - **Cap** — none. A capped terminal is off by definition.
 
 **The line is continuous along conductors and interrupted only where something attaches to
@@ -1265,9 +1282,14 @@ steps is empty.
   and validates a bridge when its inputs change (§10.6); bridges refuse vanilla's per-child
   placement calls and are placed by the manager alone.
 - Quantize terminal **positions** on registration and compare quantized values for equality.
-  Derive a Rail's outward axis from its two quantized endpoints rather than storing a separately
-  quantized angle. Introduce no runtime epsilon comparisons in the resolver. The 1 uu quantum is
-  the one tolerance the mod has, and every geometric coincidence test uses it.
+  Quantize a terminal's **outward direction** from its real transform — the Rail's actor axis,
+  the Junction's rotated face axis, an Outlet's host — onto a fixed direction grid
+  (`ACPRSpec::DirectionQuantum`: 1/100 per component, 0.6°), never from rounded positions: a
+  direction reduced from two rounded cells depends on the distance between them, so a 50 uu
+  face and a 9 m Rail that agree to a fraction of a degree reduce to different integers at any
+  angle but 0°, 45° and 90°. Introduce no runtime epsilon comparisons in the resolver. The two
+  quanta — 1 uu for positions, 1/100 for directions — are the only tolerances the mod has, and
+  every geometric coincidence test uses them.
 - Model terminal-mounted Outlet attachment as a Coupling to a private one-sided interface, so the
   three terminal states stay authoritative.
 - Represent a Coupling only as reciprocal saved terminal state and a hidden vanilla power edge.

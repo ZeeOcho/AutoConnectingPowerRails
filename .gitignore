@@ -14,3 +14,5 @@ DerivedDataCache/
 
 # Python bytecode from the editor scripts
 __pycache__/
+
+Config/Alpakit.ini

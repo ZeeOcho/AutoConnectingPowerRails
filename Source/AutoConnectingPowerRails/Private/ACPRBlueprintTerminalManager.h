@@ -141,15 +141,6 @@ private:
 		/** Relative to the buildable, from IACPRTerminalHost::GetTerminalLocalFrame. */
 		FTransform LocalFrame;
 
-		/**
-		 * The point §6.1 derives this terminal's quantized outward from, in the buildable's frame: the
-		 * Rail's OTHER end (ACPRRail.cpp: Reduce( cellA - cellB )), or the Junction's centre
-		 * (ACPRJunction.cpp: Reduce( face - centre )). Predicting the outward the placed host WILL get,
-		 * by the placed host's own rule, is what makes §10.4's opposition an exact integer test.
-		 */
-		FVector ReferenceLocal = FVector::ZeroVector;
-		bool HasReference = false;
-
 		/** §10.4 / §11: "face width - 0.1 m" as a radius — 20 uu on a Rail end, 45 on a Junction face. */
 		double DiscRadius = 20.0;
 

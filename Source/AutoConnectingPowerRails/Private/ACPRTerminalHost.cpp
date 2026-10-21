@@ -697,18 +697,18 @@ bool FACPRIndicators::Push( AFGBuildable* buildable, const IACPRTerminalHost* ho
 	return changed;
 }
 
-void FACPRIndicators::AdoptSwatch( AFGBuildable* built, const AActor* partnerActor, const TCHAR* tag )
+bool FACPRIndicators::AdoptSwatch( AFGBuildable* built, const AActor* partnerActor, const TCHAR* tag )
 {
 	const AFGBuildable* const partner = Cast< AFGBuildable >( partnerActor );
 	if( !built || !partner || built == partner || !built->HasAuthority() )
 	{
-		return;
+		return false;
 	}
 
 	const FFactoryCustomizationData& data = partner->GetCustomizationData_Native();
 	if( built->GetCustomizationData_Native() == data )
 	{
-		return;
+		return false;
 	}
 
 	// Through the colour interface's pure virtual — a vtable call, so no FactoryGame export is needed
@@ -717,7 +717,7 @@ void FACPRIndicators::AdoptSwatch( AFGBuildable* built, const AActor* partnerAct
 	IFGColorInterface* colour = Cast< IFGColorInterface >( built );
 	if( !colour )
 	{
-		return;
+		return false;
 	}
 	colour->SetCustomizationData_Native( data, false );
 
@@ -729,6 +729,74 @@ void FACPRIndicators::AdoptSwatch( AFGBuildable* built, const AActor* partnerAct
 		static_cast< int32 >( data.ColorSlot ),
 		now.SwatchDesc ? *now.SwatchDesc->GetName() : TEXT( "<none>" ),
 		static_cast< int32 >( now.ColorSlot ) );
+	return true;
+}
+
+void FACPRIndicators::SpreadSwatch( AActor* seedActor, const TCHAR* tag )
+{
+	AFGBuildable* const seed = Cast< AFGBuildable >( seedActor );
+	const AFGBlueprintProxy* const proxy = seed ? seed->GetBlueprintProxy() : nullptr;
+	if( !proxy || !seed->HasAuthority() )
+	{
+		return;
+	}
+
+	// Breadth-first over the placed blueprint's parts; every part reached is visited once, and a
+	// part already in the seed's colour costs one comparison.
+	TSet< AActor* > visited;
+	TArray< AActor* > queue;
+	visited.Add( seed );
+	queue.Add( seed );
+	int32 adopted = 0;
+
+	auto enqueue = [ & ]( AActor* candidate )
+	{
+		AFGBuildable* const buildable = Cast< AFGBuildable >( candidate );
+		if( !buildable || buildable->GetBlueprintProxy() != proxy || visited.Contains( buildable ) )
+		{
+			return;
+		}
+		visited.Add( buildable );
+		queue.Add( buildable );
+	};
+
+	for( int32 head = 0; head < queue.Num(); ++head )
+	{
+		AActor* const actor = queue[ head ];
+		if( actor != seed && AdoptSwatch( Cast< AFGBuildable >( actor ), seed, tag ) )
+		{
+			++adopted;
+			if( IACPRTerminalHost* reached = Cast< IACPRTerminalHost >( actor ) )
+			{
+				reached->SetAdoptedAtPlacement();
+			}
+		}
+
+		if( const IACPRTerminalHost* host = Cast< IACPRTerminalHost >( actor ) )
+		{
+			const int32 count = host->GetTerminalCount();
+			for( int32 i = 0; i < count; ++i )
+			{
+				const UACPRTerminalComponent* terminal = host->GetTerminalAtIndex( static_cast< uint8 >( i ) );
+				const UACPRTerminalComponent* partner = terminal ? terminal->GetCoupledTo() : nullptr;
+				if( partner )
+				{
+					enqueue( partner->GetOwner() );
+				}
+			}
+		}
+
+		TArray< AActor* > attachments;
+		FACPRAttachments::Collect( actor, attachments );
+		for( AActor* attachment : attachments )
+		{
+			enqueue( attachment );
+		}
+	}
+
+	ACPR_LOG_TAGGED( Verbose, tag,
+		TEXT( "%s spreads its swatch through blueprint %s | visited=%d adopted=%d" ),
+		*seed->GetName(), *proxy->GetName(), visited.Num(), adopted );
 }
 
 void FACPRAttachments::Collect( AActor* hostActor, TArray< AActor* >& out_actors )
@@ -1070,6 +1138,36 @@ void FACPRCoupling::Resolve( AActor* actor, IACPRTerminalHost* host )
 			ACPR_LOG( Verbose, BP,
 				TEXT( "%s placed from a blueprint: boundary search | open=%d coupled=%d" ),
 				*actor->GetName(), searched, coupled );
+
+			// §5.5: a placed host takes the colour of the network it joins, from its first coupled
+			// partner in terminal order that is a SOURCE: anything not placed with this blueprint (the
+			// world's parts, and a bridge — hand-built in Construct before any placed host begins
+			// play, so it is already in the network's colour), or a host of this placement that
+			// adopted itself. A part the blueprint was saved with is not a source, so a standalone
+			// placement keeps its saved colours. The placement's hosts begin play in an order nobody
+			// controls; with this rule the colour reaches every part either way: a host that resolves
+			// after its coloured neighbour takes it from the neighbour, one that resolves before is
+			// reached by the neighbour's spread, since both sides' couplings are restored by then.
+			AFGBuildable* const built = Cast< AFGBuildable >( actor );
+			for( int32 i = 0; i < count; ++i )
+			{
+				const UACPRTerminalComponent* terminal = host->GetTerminalAtIndex( static_cast< uint8 >( i ) );
+				const UACPRTerminalComponent* partner = terminal ? terminal->GetCoupledTo() : nullptr;
+				AActor* const partnerActor = partner ? partner->GetOwner() : nullptr;
+				const IACPRTerminalHost* partnerHost = Cast< IACPRTerminalHost >( partnerActor );
+				const bool placedTogether = partnerHost && partnerHost->WasPlacedFromBlueprint()
+					&& Cast< AFGBuildable >( partnerActor )->GetBlueprintProxy() == built->GetBlueprintProxy();
+				if( !partnerActor || ( placedTogether && !partnerHost->AdoptedAtPlacement() ) )
+				{
+					continue;
+				}
+				if( FACPRIndicators::AdoptSwatch( built, partnerActor, ACPR_TAG_TEXT( BP ) ) )
+				{
+					host->SetAdoptedAtPlacement();
+					FACPRIndicators::SpreadSwatch( built, ACPR_TAG_TEXT( BP ) );
+				}
+				break;
+			}
 		}
 	}
 	else
@@ -1081,9 +1179,9 @@ void FACPRCoupling::Resolve( AActor* actor, IACPRTerminalHost* host )
 			TryCoupleTerminal( actor, host, host->GetTerminalAtIndex( index ), index );
 		}
 
-		// A hand-built host takes its FIRST coupled partner's swatch — index order, so
-		// a Rail takes its anchor end's (terminal A is the end it was grown from). A host that
-		// coupled to nothing keeps the build gun's.
+		// §5.5: a hand-built host takes its FIRST coupled partner's customization — index order, so
+		// a Rail takes its anchor end's (terminal A is the end it was grown from), whatever the build
+		// gun carried. A host that coupled to nothing keeps the gun's.
 		for( int32 i = 0; i < count; ++i )
 		{
 			const UACPRTerminalComponent* terminal = host->GetTerminalAtIndex( static_cast< uint8 >( i ) );
