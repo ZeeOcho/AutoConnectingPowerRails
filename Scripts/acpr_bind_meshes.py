@@ -29,7 +29,7 @@ Enumerate first, write second, and only into a target that was read:
   * mInstanceDataCDO -> instances[i].static_mesh is REPORTED, never written (see bind()).
 
 Anything it cannot read is reported and skipped. Anything it writes is read back. Every
-.uasset is copied to BuildableBindBackup/ beside Content first, and a write is refused if the
+.uasset is copied to Scripts/Temp/BuildableBindBackup/ first, and a write is refused if the
 backup fails.
 """
 
@@ -46,7 +46,7 @@ MOD = "AutoConnectingPowerRails"
 BP_DIR = "/" + MOD + "/Buildables"
 MESH_DIR = "/" + MOD + "/Meshes"
 BACKUP_DIR_NAME = "BuildableBindBackup"
-LOG_NAME = "ACPR_bind_log.txt"
+LOG_NAME = "acpr_bind_meshes_log.txt"
 
 # Asset names match acpr_validate.py's PARTS table, which is the list checked against the
 # project.
@@ -77,6 +77,19 @@ BINDINGS = (
     # runtime by AACPRCap::ApplyCapMesh from soft paths defaulted in C++; the blueprint gets the
     # Rail one so the component is never empty in the editor.
     ("Cap", "Build_PowerRailCap", "SM_ACPR_CapRail", {}),
+    # §16: the Wireless Outlet's body in the Outlet's OutletMesh component, the Outlet's body
+    # pad in OutletBase (picked per host at runtime, like the Outlet), the link line unit in
+    # the LinkLines instanced component and the link end tube in LinkEnds (matched before
+    # "link", since its name contains it). One C++ class, three blueprints.
+    ("Wireless Outlet Mk.1", "Build_PowerRailWirelessOutletMk1", "SM_ACPR_WirelessOutlet",
+     {"base": "SM_ACPR_OutletBaseBody", "linkend": "SM_ACPR_LinkEnd", "link_end": "SM_ACPR_LinkEnd",
+      "link": "SM_ACPR_Link"}),
+    ("Wireless Outlet Mk.2", "Build_PowerRailWirelessOutletMk2", "SM_ACPR_WirelessOutlet",
+     {"base": "SM_ACPR_OutletBaseBody", "linkend": "SM_ACPR_LinkEnd", "link_end": "SM_ACPR_LinkEnd",
+      "link": "SM_ACPR_Link"}),
+    ("Wireless Outlet Mk.3", "Build_PowerRailWirelessOutletMk3", "SM_ACPR_WirelessOutlet",
+     {"base": "SM_ACPR_OutletBaseBody", "linkend": "SM_ACPR_LinkEnd", "link_end": "SM_ACPR_LinkEnd",
+      "link": "SM_ACPR_Link"}),
 )
 
 # False makes this a pure report — enumerate every target and change nothing.
@@ -100,16 +113,17 @@ def _problem(text):
     _log("PROBLEM  " + text)
 
 
+def _temp_dir(*parts):
+    """<mod>/Scripts/Temp — where every script writes its log and scratch output; git ignores it."""
+    directory = os.path.join(os.path.abspath(str(unreal.Paths.project_dir())), "Mods", "GameFeatures", MOD,
+                             "Scripts", "Temp", *parts)
+    os.makedirs(directory, exist_ok=True)
+    return directory
+
+
 def _write_log():
     try:
-        directory = os.path.join(str(unreal.Paths.project_saved_dir()), "ACPR")
-    except Exception:
-        directory = os.path.join(os.path.expanduser("~"), "ACPR")
-    directory = os.path.abspath(directory)
-    try:
-        if not os.path.isdir(directory):
-            os.makedirs(directory)
-        path = os.path.join(directory, LOG_NAME)
+        path = os.path.join(_temp_dir(), LOG_NAME)
         with open(path, "w", encoding="utf-8") as handle:
             handle.write("Auto-Connecting Power Rails — buildable mesh binding\n")
             handle.write("=" * 60 + "\n\n")
@@ -176,10 +190,7 @@ def _backup(package_path):
     source = _asset_file(package_path)
     if source is None:
         return False, "no .uasset found on disk for " + package_path
-    content = _content_dir()
-    if content is None:
-        return False, "the Content folder could not be located"
-    root = os.path.join(os.path.dirname(content), BACKUP_DIR_NAME)
+    root = _temp_dir(BACKUP_DIR_NAME)
     name = package_path.split(".")[0].strip("/").replace("/", "__") + ".uasset"
     destination = os.path.join(root, name)
     try:
@@ -290,7 +301,7 @@ def _components_from_blueprint(path):
                 out = []
                 for handle in handles or []:
                     data = library.get_data(handle)
-                    obj = library.get_object(data)
+                    obj = library.get_associated_object(data)
                     if obj is not None and hasattr(obj, "get_editor_property"):
                         out.append(obj)
                 if out:

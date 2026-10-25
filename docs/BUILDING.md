@@ -28,19 +28,29 @@ Run the scripts inside the editor: Window > Developer Tools > Output Log, switch
 from "Cmd" to "Python", then `exec(open(r"<plugin>\Scripts\<script>.py").read())`.
 `acpr_build_all.py` runs steps 2–8 below in order and stops at the first one that reports a
 failure; the steps can also be run one at a time. Each one writes its log to
-`Saved\ACPR\ACPR_*_log.txt` (the icon renders go to `Saved\ACPR_Icons\`), reads back what it
-wrote, and ends with a problem count. The order:
+`Scripts\Temp\acpr_<script>_log.txt` — `Scripts\Temp\` is where every script puts its log and
+scratch output (the icon renders in `Icons\`, the fingerprints, the `.uasset` backups), and git
+ignores it — reads back what it wrote, and ends with a problem count. The order:
 
 | # | Script | Makes | Needs |
 | --- | --- | --- | --- |
 | 1 | the C++ build, then an **editor restart** | the classes the blueprints are parented to | — |
-| 2 | `acpr_buildables.py` | `Build_`/`Holo_`/`Desc_`/`Recipe_` for all four buildables and `Schematic_PowerRails` with its unlock and dependency | 1 |
+| 2 | `acpr_buildables.py` | `Build_`/`Holo_`/`Desc_`/`Recipe_` for all seven buildables (the three Wireless Outlet tiers share one C++ class) and `Schematic_PowerRails` with its unlock and dependency | 1 |
 | 3 | `acpr_meshes.py` | `Content\Meshes\SM_ACPR_*` (Geometry Script) | 1 |
 | 4 | `acpr_materials.py` | `Content\Materials\M_ACPR_*`, `MI_ACPR_*`; assigns the meshes' slots | 3 |
-| 5 | `acpr_bind_meshes.py` | points the four buildables' mesh components at the meshes | 2, 3 |
+| 5 | `acpr_bind_meshes.py` | points the seven buildables' mesh components at the meshes | 2, 3 |
 | 6 | `acpr_icons.py` | `Content\Icons\T_ACPR_*`, `Resources\Icon128.png`, `Resources\ModIcon512.png`; writes them into the descriptors and the schematic | 2, 4, 5 |
 | 7 | `acpr_validate.py` | nothing — checks the unlock, recipes, descriptors and meshes before a cook | 2, 5 |
-| 8 | `acpr_fingerprint.py` | `Saved\ACPR_Fingerprint\<label>.json`: what every generated asset contains, as data; run on its own it writes `before.json`, run by `acpr_build_all.py` it writes `after.json` and `diff.txt` against the `before.json` beside it — the check that a regeneration changed only what the script change meant to | 2–6 |
+| 8 | `acpr_fingerprint.py` | `Scripts\Temp\acpr_fingerprint_<label>.json`: what every generated asset contains, as data; run on its own it writes the `before` file, run by `acpr_build_all.py` it writes the `after` file and `acpr_fingerprint_diff.txt` against the `before` file beside it — the check that a regeneration changed only what the script change meant to | 2–6 |
+
+Outside that order, `acpr_sockets.py` measures the power-socket knob of every machine in the
+game (`/Game/FactoryGame/Buildable/Factory`) and writes `Config\ACPR_Sockets.json`, the table the
+link ends are fitted with (§16.5), and its text into `Content\Data\DA_ACPR_SocketTable`, the asset
+the packaged mod loads. The table is committed — vanilla reference data, like a header
+— so a clean checkout has it and needs no step. It is re-run after a game update: step 7 warns
+when the project's game version is not the one the table was measured on and a socket or mesh it
+depends on changed, and the script's log then lists every fit that changed against the previous
+table, which is the review.
 
 ## The editor restart rule
 
@@ -60,4 +70,6 @@ Every buildable logs its compile-time build stamp at `BeginPlay`, which is the c
 All runtime logging is one category, `LogAutoConnectingPowerRails`, with a `[ACPR-…]` tag per
 subsystem. Settled instrumentation is Verbose and hidden by default; raise it with the launch
 argument `-LogCmds="LogAutoConnectingPowerRails Verbose"`. Timing and cost meters run only under
-the console variable `acpr.Trace`.
+the console variable `acpr.Trace`. The Wireless Outlet's two test overrides, `acpr.WirelessRange`
+(cm, 0 = the tiers' own) and `acpr.WirelessBlockers` (class names, empty = the outlets' own),
+re-evaluate every link when changed and do not persist.

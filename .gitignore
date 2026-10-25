@@ -12,7 +12,8 @@ DerivedDataCache/
 *.VC.db
 *.VC.opendb
 
-# Python bytecode from the editor scripts
+# Python bytecode from the editor scripts, and their logs and scratch output
 __pycache__/
+Scripts/Temp/
 
 Config/Alpakit.ini

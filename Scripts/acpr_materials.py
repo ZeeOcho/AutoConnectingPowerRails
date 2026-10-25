@@ -14,6 +14,15 @@ What it makes, under /AutoConnectingPowerRails/Materials:
     M_ACPR_Cue           a four-parameter master with an emissive output; the state
                          instances MI_ACPR_Cue (open), MI_ACPR_CueCoupled, MI_ACPR_CuePowered,
                          MI_ACPR_CueCapped and MI_ACPR_CueSelected are its children
+    M_ACPR_Link          §16.5's link line: an unlit additive master whose emissive is either a
+                         faint line (Powered 0) or nothing but a bead travelling along the line
+                         (Powered 1), built from the vertex's position along the line and the
+                         instance's length; MI_ACPR_Link and MI_ACPR_LinkPowered are its two
+                         instances, MI_ACPR_LinkEnd and MI_ACPR_LinkEndPowered the two for the
+                         tube round a linked machine's socket, and the C++ swaps them per outlet
+                         with the outlet's power
+    M_ACPR_Range         an unlit, translucent, two-sided master with an emissive colour and
+                         an opacity; MI_ACPR_Range, the range sphere, is its instance
 
 It then puts them on every mesh acpr_meshes.py generated, by material slot NAME: "Body",
 "Cue" / "Cue_+X"…, "Accent", "Power" / "Power_+X"…. Which cue state a slot wears at runtime
@@ -96,6 +105,56 @@ CUE_CAPPED_PATH = MATERIAL_DIR + "/MI_ACPR_CueCapped"    # unlit: a capped termi
 # stands out when the host it is on is already powered.
 CUE_SELECTED_PATH = MATERIAL_DIR + "/MI_ACPR_CueSelected"  # power colour, x8: the hologram's exact target
 
+# §16.5'S LINK LINE has its own master, M_ACPR_Link: unlit and ADDITIVE, so "no line" is simply
+# zero emissive and a faint line is a small one — a translucent dim line would read as a dark
+# streak against the sky. Its graph, in one sentence: along-length coordinate u = x / LINK_LENGTH
+# from the vertex's instance-local position (the engine's LocalPosition node, origin Instance —
+# the mesh is authored from x = 0 to LINK_LENGTH along +X), the line's length L from the
+# instance's own transform (the unit +X vector carried from instance space to world space is
+# LINK_LENGTH long on a unit instance, so its world length times LINK_LENGTH is the line's — no
+# per-instance data to hand over), a bead centred at c(t) travelling from one
+# bead-length before u = 0 to one bead-length past u = 1 every LINK_BEAD_PERIOD seconds — so it
+# grows out of the outlet and shrinks into the machine — and
+#     emissive = LinkColor * ( (1 - Powered) * dash(x) * LineBrightness + Powered * bead(u) * BeadBrightness ),
+# where dash(x) is 1 on the first half of every 2 * BeadLength of the line and 0 on the second:
+# the unpowered line is dashed, dash and gap each one bead long, so it cannot be read as a lit
+# line and the powered bead is visibly the same unit of length.
+# Powered is 0 on MI_ACPR_Link and 1 on MI_ACPR_LinkPowered; every other number is a scalar
+# parameter with the defaults below, which are the visual tuning in one place. "Brightness" is
+# a plain multiplier on the emissive colour — nothing falls off with distance or power.
+LINK_MASTER_PATH = MATERIAL_DIR + "/M_ACPR_Link"
+LINK_PATH = MATERIAL_DIR + "/MI_ACPR_Link"
+LINK_POWERED_PATH = MATERIAL_DIR + "/MI_ACPR_LinkPowered"
+# THE LINK END wears the same master on the tube round a linked machine's socket, with the bead
+# a few centimetres long: the dashes become standing rings (unpowered) and the bead a band
+# crawling up the socket (powered) — the link's own visual unit, read at the machine.
+LINK_END_PATH = MATERIAL_DIR + "/MI_ACPR_LinkEnd"
+LINK_END_POWERED_PATH = MATERIAL_DIR + "/MI_ACPR_LinkEndPowered"
+# The inner tube, round the knob's core between its discs, half a period behind the outer one:
+# the band climbs the outer tube, then the inner, so the two follow each other.
+LINK_END_INNER_PATH = MATERIAL_DIR + "/MI_ACPR_LinkEndInner"
+LINK_END_INNER_POWERED_PATH = MATERIAL_DIR + "/MI_ACPR_LinkEndInnerPowered"
+LINK_END_INNER_PHASE = 0.5
+LINK_END_RING_SPACING = 3.0     # ring and gap, uu, each; also the crawling band's length
+LINK_END_RING_BRIGHTNESS = 0.0625  # the standing rings, like the faint line
+LINK_END_BAND_BRIGHTNESS = 2.0     # the crawling band: half the bead, a glow on a ring a few uu wide
+LINK_MASTER_PARAMS = ("LinkColor", "Powered", "LineBrightness", "BeadBrightness", "BeadLength", "BeadPeriod", "BeadPhase")
+LINK_LENGTH = 100.0         # the link unit mesh's authored length, uu (acpr_meshes.py, LINK_LENGTH)
+LINK_LINE_BRIGHTNESS = 0.0625  # the faint line's emissive, as a fraction of the cue's (CUE_EMISSIVE_STRENGTH)
+LINK_BEAD_BRIGHTNESS = 4.0    # the bead's peak: the line is 1.5 uu thin, so bloom — the glow — needs it well
+                              # over the cue's level (1.0) to gather enough light in a pixel; the selected
+                              # cue's lamp is 8
+LINK_BEAD_LENGTH = 60.0     # the bead's half-length at half brightness, uu
+LINK_BEAD_PERIOD = 2.0      # seconds per bead, outlet to machine
+
+# THE RANGE SPHERE has its own master: unlit, translucent and two-sided, an emissive colour and
+# an opacity, nothing else. The hologram wears it while placing and nothing built does.
+RANGE_MASTER_PATH = MATERIAL_DIR + "/M_ACPR_Range"
+RANGE_PATH = MATERIAL_DIR + "/MI_ACPR_Range"
+RANGE_MASTER_PARAMS = ("EmissiveColor", "Opacity")
+RANGE_COLOR = (0.20, 0.60, 1.00, 1.0)                    # the hologram's own blue
+RANGE_OPACITY = 0.08
+
 # THE CUE HAS ITS OWN MASTER. With bUsePrimitiveCustomData off, the array master emits nothing:
 # its light colour comes from custom data or from nowhere, and GlowingLight / StandardLight /
 # GlowColor are not the emissive input in the game's real graph. A readout that must not read
@@ -130,13 +189,20 @@ CUE_SELECTED_STRENGTH = 8.0
 # The three jobs land in slots BY NAME: "Body", "Cue" / "Cue_+X"…, "Accent", "Power" /
 # "Power_+X"…, as acpr_meshes.py names them. No index here.
 
-LOG_NAME = "ACPR_material_log.txt"
+LOG_NAME = "acpr_materials_log.txt"
 
 MESHES = ("SM_ACPR_RailBody", "SM_ACPR_RailTerminal", "SM_ACPR_RailTerminalBridged", "SM_ACPR_Junction",
           "SM_ACPR_Outlet",
           "SM_ACPR_OutletBaseBody", "SM_ACPR_OutletBaseRail", "SM_ACPR_OutletBaseJunction",
           # One cap per host face width.
-          "SM_ACPR_CapRail", "SM_ACPR_CapJunction")
+          "SM_ACPR_CapRail", "SM_ACPR_CapJunction",
+          # §16: the Wireless Outlet's body takes the three jobs by slot like the Outlet's.
+          "SM_ACPR_WirelessOutlet")
+
+# Meshes that are ONE material all over, by name: the link line and the range sphere have no
+# body, cue or accent — every slot takes the one material named here.
+WHOLE_MESH = {"SM_ACPR_Link": LINK_PATH, "SM_ACPR_LinkEnd": LINK_END_PATH,
+              "SM_ACPR_RangeSphere": RANGE_PATH}  # the unpowered states are the meshes' own; the outlet swaps
 
 # §12's palette. Amber is an OPEN terminal — the state the cue spends most of its life in
 # while a network is being built, and the one that has to be unmistakable.
@@ -220,15 +286,17 @@ def _problem(text):
     _log("PROBLEM  " + text)
 
 
+def _temp_dir(*parts):
+    """<mod>/Scripts/Temp — where every script writes its log and scratch output; git ignores it."""
+    directory = os.path.join(os.path.abspath(str(unreal.Paths.project_dir())), "Mods", "GameFeatures", MOD,
+                             "Scripts", "Temp", *parts)
+    os.makedirs(directory, exist_ok=True)
+    return directory
+
+
 def _write_log():
     try:
-        directory = os.path.join(str(unreal.Paths.project_saved_dir()), "ACPR")
-    except Exception:
-        directory = os.path.join(os.path.expanduser("~"), "ACPR")
-    directory = os.path.abspath(directory)
-    try:
-        if not os.path.isdir(directory):
-            os.makedirs(directory)
+        directory = _temp_dir()
         with open(os.path.join(directory, LOG_NAME), "w") as handle:
             handle.write("Auto-Connecting Power Rails — material log\n")
             handle.write("=" * 60 + "\n\n")
@@ -536,6 +604,319 @@ def _build_accent_master(material):
     return made == len(plan)
 
 
+def _connect(library, nodes, from_name, from_output, to_name, to_input, failures):
+    """connect_material_expressions, by the input's exact name — a multi-input node's pin is
+    never guessed, because a wrong pin compiles and renders the wrong thing (a SmoothStep fed on
+    its Min instead of its Value is lit everywhere). The one fallback is the empty name, which
+    the library takes as "the only input", and it is allowed for single-input nodes alone
+    (to_input "Input"). Every connection is logged with the name that took it."""
+    source = nodes.get(from_name)
+    target = nodes.get(to_name)
+    if source is None or target is None:
+        failures.append("{0} -> {1}.{2}: node missing".format(from_name, to_name, to_input))
+        return
+    names = (to_input, "") if to_input == "Input" else (to_input,)
+    for name in names:
+        try:
+            if library.connect_material_expressions(source, from_output, target, name):
+                _info("    link " + from_name + " -> " + to_name, "pin '{0}'".format(name or "<only>"))
+                return
+        except Exception as e:
+            _info("    link " + from_name + " -> " + to_name, "pin '{0}' raised {1}".format(name, e))
+    failures.append("{0} -> {1}.{2}".format(from_name, to_name, to_input))
+
+
+def _build_link_master(material):
+    """M_ACPR_Link's graph — see LINK_MASTER_PATH for the sentence it computes. Node class and
+    property names are from Epic's Python reference (MaterialExpressionLocalPosition with
+    local_origin LocalPositionOrigin.INSTANCE, MaterialExpressionComponentMask,
+    MaterialExpressionTransform with transform_source_type
+    MaterialVectorCoordTransformSource.TRANSFORMSOURCE_INSTANCE and transform_type
+    MaterialVectorCoordTransform.TRANSFORM_WORLD, MaterialExpressionConstant3Vector,
+    MaterialExpressionDotProduct, MaterialExpressionSquareRoot, MaterialExpressionTime,
+    MaterialExpressionMax, MaterialExpressionSaturate, the arithmetic nodes with const_a /
+    const_b); input pins are A/B for the arithmetic, the single pin otherwise."""
+    library = _library()
+    if library is None:
+        return False
+    try:
+        library.delete_all_material_expressions(material)
+    except Exception:
+        pass
+    try:
+        material.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_UNLIT)
+        material.set_editor_property("blend_mode", unreal.BlendMode.BLEND_ADDITIVE)
+        material.set_editor_property("two_sided", False)
+    except Exception as e:
+        _problem("link master: material properties: {0}".format(e))
+
+    colour = tuple(c * CUE_EMISSIVE_STRENGTH for c in CUE_POWERED_COLOR[:3]) + (1.0,)
+    # name: (class, {editor properties}, x, y)
+    local_origin = getattr(getattr(unreal, "LocalPositionOrigin", None), "INSTANCE", None)
+    from_instance = getattr(getattr(unreal, "MaterialVectorCoordTransformSource", None), "TRANSFORMSOURCE_INSTANCE", None)
+    to_world = getattr(getattr(unreal, "MaterialVectorCoordTransform", None), "TRANSFORM_WORLD", None)
+    transform_props = {}
+    if from_instance is not None and to_world is not None:
+        transform_props = {"transform_source_type": from_instance, "transform_type": to_world}
+    plan = {
+        "position":     ("MaterialExpressionLocalPosition",
+                         {"local_origin": local_origin} if local_origin is not None else {}, -1600, -200),
+        "x":            ("MaterialExpressionComponentMask", {"r": True, "g": False, "b": False, "a": False}, -1400, -200),
+        "u":            ("MaterialExpressionDivide", {"const_b": LINK_LENGTH}, -1200, -200),
+        # L: the instance's +X unit vector in world space is the instance's X scale long, and the
+        # mesh is LINK_LENGTH on a unit instance
+        "unitX":        ("MaterialExpressionConstant3Vector", {"constant": unreal.LinearColor(1.0, 0.0, 0.0, 1.0)}, -2000, 0),
+        "axis":         ("MaterialExpressionTransform", transform_props, -1800, 0),
+        "axisDot":      ("MaterialExpressionDotProduct", {}, -1600, 0),
+        "scaleX":       ("MaterialExpressionSquareRoot", {}, -1400, 0),
+        "worldLength":  ("MaterialExpressionMultiply", {"const_b": LINK_LENGTH}, -1200, 0),
+        # never divided by zero
+        "length":       ("MaterialExpressionMax", {"const_b": 1.0}, -1000, 0),
+        "time":         ("MaterialExpressionTime", {}, -1400, 200),
+        "period":       ("MaterialExpressionScalarParameter",
+                         {"parameter_name": "BeadPeriod", "default_value": LINK_BEAD_PERIOD}, -1400, 300),
+        "beadLength":   ("MaterialExpressionScalarParameter",
+                         {"parameter_name": "BeadLength", "default_value": LINK_BEAD_LENGTH}, -1400, 400),
+        "powered":      ("MaterialExpressionScalarParameter",
+                         {"parameter_name": "Powered", "default_value": 0.0}, -1400, 500),
+        "lineBrightness": ("MaterialExpressionScalarParameter",
+                         {"parameter_name": "LineBrightness", "default_value": LINK_LINE_BRIGHTNESS}, -1400, 600),
+        "beadBrightness": ("MaterialExpressionScalarParameter",
+                         {"parameter_name": "BeadBrightness", "default_value": LINK_BEAD_BRIGHTNESS}, -1400, 700),
+        "colour":       ("MaterialExpressionVectorParameter",
+                         {"parameter_name": "LinkColor", "default_value": unreal.LinearColor(*colour)}, -1400, 800),
+        "beadPhase":    ("MaterialExpressionScalarParameter",
+                         {"parameter_name": "BeadPhase", "default_value": 0.0}, -1400, 900),
+        # t = frac(time / period + BeadPhase)
+        "phase":        ("MaterialExpressionDivide", {}, -1100, 200),
+        "shifted":      ("MaterialExpressionAdd", {}, -1000, 200),
+        "t":            ("MaterialExpressionFrac", {}, -900, 200),
+        # hu = beadLength / length ; span = 1 + 2 hu ; c = t * span - hu
+        "hu":           ("MaterialExpressionDivide", {}, -1100, 400),
+        "twoHu":        ("MaterialExpressionMultiply", {"const_b": 2.0}, -900, 400),
+        "span":         ("MaterialExpressionAdd", {"const_b": 1.0}, -700, 400),
+        "travel":       ("MaterialExpressionMultiply", {}, -500, 300),
+        "centre":       ("MaterialExpressionSubtract", {}, -300, 300),
+        # d = |u - c| / hu ; s = saturate(1 - d) ; bead = s * s * (3 - 2 s)  (the smoothstep
+        # polynomial, written out on A/B pins: no node whose pins could be mistaken for each other)
+        "offset":       ("MaterialExpressionSubtract", {}, -100, -100),
+        "distance":     ("MaterialExpressionAbs", {}, 100, -100),
+        "d":            ("MaterialExpressionDivide", {}, 300, -100),
+        "nearness":     ("MaterialExpressionOneMinus", {}, 500, -100),
+        "s":            ("MaterialExpressionSaturate", {}, 700, -100),
+        "s2":           ("MaterialExpressionMultiply", {}, 900, -200),
+        "twoS":         ("MaterialExpressionMultiply", {"const_b": 2.0}, 900, -50),
+        "threeMinus":   ("MaterialExpressionSubtract", {"const_a": 3.0}, 1100, -50),
+        "bead":         ("MaterialExpressionMultiply", {}, 1300, -150),
+        # dash(x) = 1 where frac(x / (2 beadLength)) < 0.5: x in uu along the line is u * L
+        "xAlong":       ("MaterialExpressionMultiply", {}, -900, 800),
+        "dashPeriod":   ("MaterialExpressionMultiply", {"const_b": 2.0}, -900, 900),
+        "dashPhase":    ("MaterialExpressionDivide", {}, -700, 850),
+        "dashFrac":     ("MaterialExpressionFrac", {}, -500, 850),
+        "dashHalf":     ("MaterialExpressionSubtract", {"const_a": 0.5}, -300, 850),
+        "dashSteep":    ("MaterialExpressionMultiply", {"const_b": 1000.0}, -100, 850),
+        "dash":         ("MaterialExpressionSaturate", {}, 100, 850),
+        # emissive = colour * ((1 - powered) * dash * lineBrightness + powered * bead * beadBrightness)
+        "unpowered":    ("MaterialExpressionOneMinus", {}, -1100, 500),
+        "lineOn":       ("MaterialExpressionMultiply", {}, 300, 600),
+        "lineTerm":     ("MaterialExpressionMultiply", {}, 500, 600),
+        "beadOn":       ("MaterialExpressionMultiply", {}, 1500, 0),
+        "beadTerm":     ("MaterialExpressionMultiply", {}, 1700, 100),
+        "brightness":   ("MaterialExpressionAdd", {}, 1900, 300),
+        "emissive":     ("MaterialExpressionMultiply", {}, 2100, 500),
+    }
+    links = (
+        ("position", "", "x", "Input"),
+        ("x", "", "u", "A"),
+        ("unitX", "", "axis", "Input"),
+        ("axis", "", "axisDot", "A"), ("axis", "", "axisDot", "B"),
+        ("axisDot", "", "scaleX", "Input"),
+        ("scaleX", "", "worldLength", "A"),
+        ("worldLength", "", "length", "A"),
+        ("time", "", "phase", "A"), ("period", "", "phase", "B"),
+        ("phase", "", "shifted", "A"), ("beadPhase", "", "shifted", "B"),
+        ("shifted", "", "t", "Input"),
+        ("beadLength", "", "hu", "A"), ("length", "", "hu", "B"),
+        ("hu", "", "twoHu", "A"),
+        ("twoHu", "", "span", "A"),
+        ("t", "", "travel", "A"), ("span", "", "travel", "B"),
+        ("travel", "", "centre", "A"), ("hu", "", "centre", "B"),
+        ("u", "", "offset", "A"), ("centre", "", "offset", "B"),
+        ("offset", "", "distance", "Input"),
+        ("distance", "", "d", "A"), ("hu", "", "d", "B"),
+        ("d", "", "nearness", "Input"),
+        ("nearness", "", "s", "Input"),
+        ("s", "", "s2", "A"), ("s", "", "s2", "B"),
+        ("s", "", "twoS", "A"),
+        ("twoS", "", "threeMinus", "B"),
+        ("s2", "", "bead", "A"), ("threeMinus", "", "bead", "B"),
+        ("u", "", "xAlong", "A"), ("length", "", "xAlong", "B"),
+        ("beadLength", "", "dashPeriod", "A"),
+        ("xAlong", "", "dashPhase", "A"), ("dashPeriod", "", "dashPhase", "B"),
+        ("dashPhase", "", "dashFrac", "Input"),
+        ("dashFrac", "", "dashHalf", "B"),
+        ("dashHalf", "", "dashSteep", "A"),
+        ("dashSteep", "", "dash", "Input"),
+        ("powered", "", "unpowered", "Input"),
+        ("unpowered", "", "lineOn", "A"), ("dash", "", "lineOn", "B"),
+        ("lineOn", "", "lineTerm", "A"), ("lineBrightness", "", "lineTerm", "B"),
+        ("bead", "", "beadOn", "A"), ("powered", "", "beadOn", "B"),
+        ("beadOn", "", "beadTerm", "A"), ("beadBrightness", "", "beadTerm", "B"),
+        ("lineTerm", "", "brightness", "A"), ("beadTerm", "", "brightness", "B"),
+        ("colour", "", "emissive", "A"), ("brightness", "", "emissive", "B"),
+    )
+
+    nodes = {}
+    failures = []
+    if local_origin is None:
+        failures.append("unreal.LocalPositionOrigin.INSTANCE is not available — the bead would read the component's position, not the instance's")
+    if not transform_props:
+        failures.append("MaterialVectorCoordTransformSource.TRANSFORMSOURCE_INSTANCE / MaterialVectorCoordTransform.TRANSFORM_WORLD are not available — the line's length cannot be read")
+    for name, (class_name, props, x, y) in plan.items():
+        expression_class = getattr(unreal, class_name, None)
+        if expression_class is None:
+            failures.append("missing unreal.{0}".format(class_name))
+            continue
+        try:
+            node = library.create_material_expression(material, expression_class, x, y)
+            for key, value in props.items():
+                node.set_editor_property(key, value)
+            nodes[name] = node
+        except Exception as e:
+            failures.append("{0}: {1}".format(name, e))
+    for from_name, from_output, to_name, to_input in links:
+        _connect(library, nodes, from_name, from_output, to_name, to_input, failures)
+    emissive = nodes.get("emissive")
+    property_ = getattr(getattr(unreal, "MaterialProperty", None), "MP_EMISSIVE_COLOR", None)
+    if emissive is None or property_ is None:
+        failures.append("emissive output")
+    else:
+        try:
+            if not library.connect_material_property(emissive, "", property_):
+                failures.append("emissive -> EmissiveColor")
+        except Exception as e:
+            failures.append("emissive -> EmissiveColor: {0}".format(e))
+    for failure in failures:
+        _problem("link master: " + failure)
+    try:
+        library.recompile_material(material)
+    except Exception as e:
+        _info("link master recompile", "failed: {0}".format(e))
+    try:
+        unreal.EditorAssetLibrary.save_asset(LINK_MASTER_PATH, only_if_is_dirty=False)
+    except Exception:
+        pass
+    return not failures
+
+
+def _ensure_instanced_usage(material, path):
+    """The master must be allowed on instanced static meshes, or the packaged game draws the
+    engine's default material — a flat gray — wherever an instanced component wears it. The
+    editor sets this flag itself when it sees such a use, but only in the material asset it then
+    has to save, and the scripts save blueprints and meshes, not the masters. So it is set here,
+    read back, and saved with the master."""
+    try:
+        before = bool(material.get_editor_property("used_with_instanced_static_meshes"))
+        if not before:
+            material.set_editor_property("used_with_instanced_static_meshes", True)
+        after = bool(material.get_editor_property("used_with_instanced_static_meshes"))
+        _info("  " + path.split("/")[-1] + " used_with_instanced_static_meshes",
+              "{0}{1}".format(after, "" if before else " (set now)"))
+        if not after:
+            _problem(path + ": used_with_instanced_static_meshes did not take — instanced link lines would draw gray")
+        elif not before:
+            unreal.EditorAssetLibrary.save_asset(path, only_if_is_dirty=False)
+    except Exception as e:
+        _problem(path + ": used_with_instanced_static_meshes could not be read or set: {0}".format(e))
+
+
+def _link_master():
+    """M_ACPR_Link, rebuilt EVERY run like the accent master: it is a graph of arithmetic, and
+    rebuilding is how a changed tuning constant actually lands."""
+    material = _make_or_load(LINK_MASTER_PATH, unreal.Material, "MaterialFactoryNew")
+    if material is None:
+        _problem("link master " + LINK_MASTER_PATH + " could not be made")
+        return None
+    ok = _build_link_master(material)
+    _ensure_instanced_usage(material, LINK_MASTER_PATH)
+    have = _cue_master_params(material)
+    _info("link master", "{0} — graph {1}; exposes: {2}".format(
+        LINK_MASTER_PATH, "built" if ok else "INCOMPLETE", ", ".join(sorted(have)) or "nothing"))
+    missing = [p for p in LINK_MASTER_PARAMS if p not in have]
+    if missing:
+        _problem("link master does not expose " + ", ".join(missing))
+    if not ok:
+        _problem("link master graph is incomplete; the link lines will not draw as designed")
+    return material
+
+
+def _build_range_master(material):
+    """M_ACPR_Range's graph: an emissive colour parameter and an opacity parameter, on an unlit,
+    translucent, two-sided material. The same calls as the cue master, plus the three material
+    properties acpr_icons.py sets the same way for its hologram material."""
+    library = _library()
+    if library is None:
+        return False
+    try:
+        library.delete_all_material_expressions(material)
+    except Exception:
+        pass
+    try:
+        material.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_UNLIT)
+        material.set_editor_property("blend_mode", unreal.BlendMode.BLEND_TRANSLUCENT)
+        material.set_editor_property("two_sided", True)
+    except Exception as e:
+        _problem("range master: material properties: {0}".format(e))
+    plan = (
+        ("MaterialExpressionVectorParameter", "EmissiveColor",
+         unreal.LinearColor(*RANGE_COLOR), "MP_EMISSIVE_COLOR", -400, 0),
+        ("MaterialExpressionScalarParameter", "Opacity", RANGE_OPACITY, "MP_OPACITY", -400, 200),
+    )
+    made = 0
+    for class_name, parameter, default, property_name, x, y in plan:
+        expression_class = getattr(unreal, class_name, None)
+        property_ = getattr(getattr(unreal, "MaterialProperty", None), property_name, None)
+        if expression_class is None or property_ is None:
+            _problem("range master: missing unreal.{0} or MaterialProperty.{1}".format(class_name, property_name))
+            continue
+        try:
+            node = library.create_material_expression(material, expression_class, x, y)
+            node.set_editor_property("parameter_name", parameter)
+            node.set_editor_property("default_value", default)
+            library.connect_material_property(node, "", property_)
+            made += 1
+        except Exception as e:
+            _problem("range master {0}: {1}".format(parameter, e))
+    try:
+        library.recompile_material(material)
+    except Exception as e:
+        _info("range master recompile", "failed: {0}".format(e))
+    try:
+        unreal.EditorAssetLibrary.save_asset(RANGE_MASTER_PATH, only_if_is_dirty=False)
+    except Exception:
+        pass
+    return made == len(plan)
+
+
+def _range_master():
+    """M_ACPR_Range, built if it does not exist or does not carry its two parameters."""
+    material = _make_or_load(RANGE_MASTER_PATH, unreal.Material, "MaterialFactoryNew")
+    if material is None:
+        _problem("range master " + RANGE_MASTER_PATH + " could not be made")
+        return None
+    have = _cue_master_params(material)
+    if any(p not in have for p in RANGE_MASTER_PARAMS):
+        ok = _build_range_master(material)
+        have = _cue_master_params(material)
+        _info("range master", "{0} — graph {1}; exposes: {2}".format(
+            RANGE_MASTER_PATH, "built" if ok else "INCOMPLETE", ", ".join(sorted(have)) or "nothing"))
+        if not ok:
+            _problem("range master graph is incomplete; the range sphere will not show")
+    else:
+        _info("range master", "{0} — present; exposes: {1}".format(RANGE_MASTER_PATH, ", ".join(sorted(have))))
+    return material
+
+
 def _accent_master():
     """M_ACPR_Accent, rebuilt EVERY run — it is three nodes, and rebuilding is how a changed
     ACCENT_PRIMITIVE_DATA_INDEX or a repaired flag actually lands rather than being skipped for
@@ -583,6 +964,7 @@ def _cue_master():
     else:
         _info("cue master", "{0} — present; exposes: {1}".format(
             CUE_MASTER_PATH, ", ".join(sorted(have))))
+    _ensure_instanced_usage(material, CUE_MASTER_PATH)
     return material
 
 
@@ -655,9 +1037,9 @@ def _apply(instance, path, master, switches, scalars, vectors):
 # Wearing them
 # ---------------------------------------------------------------------------
 
-def _assign(mesh_name, body, cue, accent, power=None):
+def _assign(mesh_name, body, cue, accent, power=None, whole=None):
     """Body, Cue(s), Accent, Power(s), assigned BY SLOT NAME. The slot table is per mesh and
-    acpr_meshes.py names it.
+    acpr_meshes.py names it. With `whole`, every slot takes that one material (WHOLE_MESH).
 
     The materials go on the MESH ASSET rather than on a component, so they arrive the same
     way for every buildable."""
@@ -688,7 +1070,10 @@ def _assign(mesh_name, body, cue, accent, power=None):
             slot_name = str(entry.get_editor_property("material_slot_name"))
         except Exception:
             slot_name = ""
-        if slot_name == "Body":
+        if whole is not None:
+            material = whole
+            slot_name = slot_name or "Slot_{0}".format(index)
+        elif slot_name == "Body":
             material = body
         elif slot_name == "Accent":
             material = accent
@@ -803,10 +1188,40 @@ def _run():
     _apply(accent, ACCENT_PATH, accent_master, {}, ACCENT_SCALARS, {})
     _report_resolved_textures("accent", accent)
 
+    # §16.5's link line: the two states of the link master, Powered 0 and 1. Every other
+    # parameter is left at the master's default, so the tuning lives in one place.
+    link_master = _link_master()
+    if link_master is not None:
+        end_scalars = {"BeadLength": LINK_END_RING_SPACING, "LineBrightness": LINK_END_RING_BRIGHTNESS,
+                       "BeadBrightness": LINK_END_BAND_BRIGHTNESS}
+        for path, scalars in ((LINK_PATH, {"Powered": 0.0}), (LINK_POWERED_PATH, {"Powered": 1.0}),
+                              (LINK_END_PATH, dict(end_scalars, Powered=0.0)),
+                              (LINK_END_POWERED_PATH, dict(end_scalars, Powered=1.0)),
+                              (LINK_END_INNER_PATH, dict(end_scalars, Powered=0.0, BeadPhase=LINK_END_INNER_PHASE)),
+                              (LINK_END_INNER_POWERED_PATH, dict(end_scalars, Powered=1.0, BeadPhase=LINK_END_INNER_PHASE))):
+            link = _make_or_load(path, unreal.MaterialInstanceConstant, "MaterialInstanceConstantFactoryNew")
+            if link is None:
+                _problem(path + " could not be made")
+                continue
+            _check_names("link", link_master, {}, scalars, {})
+            _apply(link, path, link_master, {}, scalars, {})
+
+    # The range sphere, on its own translucent master.
+    range_master = _range_master()
+    range_instance = _make_or_load(RANGE_PATH, unreal.MaterialInstanceConstant,
+                                   "MaterialInstanceConstantFactoryNew") if range_master is not None else None
+    if range_instance is not None:
+        _check_names("range", range_master, {}, {"Opacity": RANGE_OPACITY}, {"EmissiveColor": RANGE_COLOR})
+        _apply(range_instance, RANGE_PATH, range_master, {}, {"Opacity": RANGE_OPACITY}, {"EmissiveColor": RANGE_COLOR})
+    else:
+        _problem(RANGE_PATH + " could not be made")
+
     _log("=== meshes ===")
     power = _load(CUE_COUPLED_PATH)
     for name in MESHES:
         _assign(name, body, cue, accent, power)
+    for name, material_path in WHOLE_MESH.items():
+        _assign(name, body, cue, accent, power, whole=_load(material_path))
 
 
 def main():
@@ -819,8 +1234,9 @@ def main():
     for problem in _problems:
         _log("  PROBLEM  " + problem)
     if not _problems:
-        _log("Slot 0 is painted metal and slot 1 is the cue, on every mesh. Which cue state")
-        _log("a slot shows is swapped per slot by the C++ at runtime.")
+        _log("Slot 0 is painted metal and slot 1 is the cue, on every buildable mesh. Which cue state")
+        _log("a slot shows is swapped per slot by the C++ at runtime, and so is the link line's")
+        _log("state. The range sphere is one material all over.")
 
 
 try:

@@ -36,4 +36,14 @@ private:
 	FDelegateHandle mBlueprintBeginPlayHook;
 	FDelegateHandle mBlueprintBuildModeHook;
 
+	/**
+	 * §16.4's events that vanilla never broadcasts, and §16.5's preview on vanilla machine holograms.
+	 * See UACPRWirelessLinkSubsystem's header for what each one is.
+	 */
+	FDelegateHandle mLightweightAddedHook;
+	FDelegateHandle mLightweightRemovedHook;
+	FDelegateHandle mBuildableDismantleHook;
+	FDelegateHandle mDesignerSpawnedHook;
+	FDelegateHandle mDesignerDismantledHook;
+	FDelegateHandle mMachineHologramHook;
 };

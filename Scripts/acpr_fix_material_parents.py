@@ -70,8 +70,9 @@ import unreal
 # The env var is only so this script can be dry-run outside the editor against a fake dump;
 # in the editor nothing sets it and the literal path is used.
 DUMP_ROOT = os.environ.get("ACPR_DUMP_ROOT", r"G:\OtherDevelopment\Satisfactory\dump")
-BACKUP_DIR_NAME = "ParentFixBackup"   # beside Content, NOT inside it — see _backup_root
-LOG_NAME = "ACPR_fix_parents_log.txt"
+BACKUP_DIR_NAME = "ParentFixBackup"   # under Scripts/Temp, NOT inside Content — see _backup_root
+LOG_NAME = "acpr_fix_material_parents_log.txt"
+MOD = "AutoConnectingPowerRails"
 
 MAX_REPAIRS = 4000         # a ceiling, not an expectation: ~1600 are orphaned
 PROGRESS_EVERY = 100       # a line every N assets, so a long run is visibly alive
@@ -139,15 +140,12 @@ def _content_dir():
 
 
 def _backup_root():
-    """Backups go BESIDE Content, never inside it.
+    """Backups go under Scripts/Temp, never inside a Content folder.
 
     A .uasset copied into Content is a second asset as far as the editor is concerned, with
     a duplicate name, and it would be picked up by every list_assets call in this project's
-    scripts. The project directory is Content's parent."""
-    content = _content_dir()
-    if content is None:
-        return None
-    return os.path.join(os.path.dirname(content), BACKUP_DIR_NAME)
+    scripts."""
+    return _temp_dir(BACKUP_DIR_NAME)
 
 
 def _asset_file(package_path):
@@ -509,16 +507,17 @@ def repair(orphans):
             _log("     {0}  <-  {1}".format(path, detail))
 
 
+def _temp_dir(*parts):
+    """<mod>/Scripts/Temp — where every script writes its log and scratch output; git ignores it."""
+    directory = os.path.join(os.path.abspath(str(unreal.Paths.project_dir())), "Mods", "GameFeatures", MOD,
+                             "Scripts", "Temp", *parts)
+    os.makedirs(directory, exist_ok=True)
+    return directory
+
+
 def _write_log():
     try:
-        directory = os.path.join(str(unreal.Paths.project_saved_dir()), "ACPR")
-    except Exception:
-        directory = os.path.join(os.path.expanduser("~"), "ACPR")
-    directory = os.path.abspath(directory)
-    try:
-        if not os.path.isdir(directory):
-            os.makedirs(directory)
-        path = os.path.join(directory, LOG_NAME)
+        path = os.path.join(_temp_dir(), LOG_NAME)
         with open(path, "w", encoding="utf-8") as handle:
             handle.write("Auto-Connecting Power Rails — material parent repair\n")
             handle.write("=" * 60 + "\n\n")

@@ -6,6 +6,7 @@
 #include "AutoConnectingPowerRails.h"
 #include "Buildables/FGBuildableBlueprintDesigner.h"
 #include "GameFramework/Actor.h"
+#include "UObject/UnrealType.h"
 
 AFGBuildableBlueprintDesigner* FACPRSpace::OfActor( const AActor* actor )
 {
@@ -18,6 +19,29 @@ AFGBuildableBlueprintDesigner* FACPRSpace::OfActor( const AActor* actor )
 	// accessor it reaches is const, so the const_cast is the whole cost of keeping this signature const.
 	const IACPRTerminalHost* host = Cast< IACPRTerminalHost >( const_cast< AActor* >( actor ) );
 	return host ? host->GetHostDesigner() : nullptr;
+}
+
+AFGBuildableBlueprintDesigner* FACPRSpace::OfObject( const UObject* object )
+{
+	if( !IsValid( object ) )
+	{
+		return nullptr;
+	}
+	// A host answers through its own field, as before; anything else through the property by name.
+	if( const AActor* actor = Cast< AActor >( object ) )
+	{
+		if( Cast< IACPRTerminalHost >( const_cast< AActor* >( actor ) ) )
+		{
+			return OfActor( actor );
+		}
+	}
+	static const FName fieldName( TEXT( "mBlueprintDesigner" ) );
+	const FObjectPropertyBase* field = CastField< FObjectPropertyBase >( object->GetClass()->FindPropertyByName( fieldName ) );
+	if( !field )
+	{
+		return nullptr;
+	}
+	return Cast< AFGBuildableBlueprintDesigner >( field->GetObjectPropertyValue_InContainer( object ) );
 }
 
 FString FACPRSpace::Describe( const AFGBuildableBlueprintDesigner* designer )

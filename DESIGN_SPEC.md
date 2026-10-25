@@ -29,7 +29,7 @@ This mod adds a beam-like conductive **Power Rail** system. Rails couple only th
 compatible terminals, giving modular factories an auto-connecting power backbone without
 indiscriminate proximity wiring.
 
-### 1.1 The four buildables
+### 1.1 The five buildables
 
 - **Power Rail** — derives from the vanilla Painted Beam. Its two ends are logical
   **terminals**.
@@ -37,8 +37,11 @@ indiscriminate proximity wiring.
 - **Power Rail Outlet** — derives from the Wall Outlet. Mounts on any open terminal or on a
   Rail body, and is the sole interface between Rail topology and ordinary power wiring.
 - **Insulated Terminal Cap** — no vanilla equivalent. Closes an open terminal off.
+- **Power Rail Wireless Outlet** — derives from the Outlet's placement. Mounts like an Outlet,
+  carries no Power Lines, and feeds nearby unwired machines through links that need no cable
+  (§16). Three tiers, differing only in range.
 
-Coupled Rails, Junctions and Outlets participate in the vanilla power circuit.
+Coupled Rails, Junctions, Outlets and Wireless Outlets participate in the vanilla power circuit.
 
 ### 1.2 Governing principles
 
@@ -59,7 +62,7 @@ readable topology, and deterministic behaviour over convenience.
 
 ### 2.1 Ships
 
-- The four buildables.
+- The five buildables; the Wireless Outlet in three range tiers (§16).
 - Terminal snapping and coincident coupling during world construction.
 - Three Junction placement modes: standalone, terminal-snapped, inline.
 - Blueprint boundary auto-connect.
@@ -120,6 +123,12 @@ Not to be weakened for implementation convenience.
 14. Cycles are valid. No implementation may assume a tree.
 15. A Coupling is created only by construction and removed only by dismantling. It is never
     independently selectable or player-targetable.
+16. A wireless link joins one machine's power connection to exactly one Wireless Outlet, the
+    nearest in range with a clear line. A machine never links to two outlets, so a link never
+    creates a path between two networks — the one thing a cable never does by accident.
+17. Links change only on events — construction, load, a Power Line attached or removed, a
+    dismantle, a buildable built or removed on the line, a range change — never by polling. A
+    link is a vanilla hidden connection, saved and restored like a Coupling.
 
 ---
 
@@ -224,7 +233,7 @@ common point of its six terminals. The worst case on a chain of maximum-length R
 ### 5.5 Customization
 
 - Steel is the structural and recipe material for Rail and Junction.
-- Colour swatches, paint finishes and surface patterns are available on all four buildables
+- Colour swatches, paint finishes and surface patterns are available on all five buildables
   under ordinary vanilla unlocks. All three are free (§13), and all survive blueprint save and
   placement, generated Rail construction, and Junction insertion.
 - **A fresh part wears the Foundation group's default swatch**, so an unpainted part is dark
@@ -436,7 +445,8 @@ terminals. A standalone cell exactly on a Rail's axis is not a crossing but an i
 
 One tier, equivalent to Wall Outlet Mk.1: one Power Connection, four Power Lines
 (`mMaxNumConnectionLinks = 4`), vanilla connector feedback. Its Coupling does not count toward
-the four; Rail topology cannot use the Power Connection.
+the four; Rail topology cannot use the Power Connection. The Wireless Outlet (§16) shares the
+Outlet's placement rules and nothing else.
 
 ### 8.1 Body-mounted
 
@@ -462,12 +472,41 @@ Host mode, transform, Power Connection state and Power Lines are saved and repli
 construction and Junction insertion remap both modes. Dismantling a host also dismantles
 dependent Outlets with full refunds, previewed. An Outlet never becomes a vanilla Wall Outlet.
 
+### 8.4 A cable aimed at a Rail
+
+Vanilla's Power Line, once its first end is attached, builds something at its second end when
+that end is aimed at no connection: a Power Pole on the ground, a Wall Outlet on a wall or a beam.
+A Rail is a beam, so a cable aimed at a Rail would build a Wall Outlet on it — a near look-alike of
+the Rail Outlet that is not connected to the Rail: a quiet mistake, found later as a circuit that
+does not carry. Instead, a cable aimed at a Rail body or an open terminal (a Rail's or a
+Junction's) builds a Power Rail Outlet there, mounted as §8.1 / §8.2 say, and the cable attaches
+to it. Guidelines (Ctrl) apply to the body mount as they do to a hand-built Outlet.
+
+The mechanism is vanilla's own as far as it reaches. The wire hologram carries its Power Pole and
+Wall Outlet as child holograms and makes one of them its automatic pole per aim; a child that is
+not the choice is *disabled* (vanilla's flag for a child that takes no part in placement, cost or
+construction). The Rail Outlet's hologram is a third child, spawned once vanilla's own two exist
+and the Rail Outlet's recipe is unlocked, and it is the automatic pole whenever its own placement
+tests (§8.1, §8.2) accept the aim — the same tests a hand-built Outlet passes; vanilla's choice
+stands on every other aim. The choice is made after vanilla's own for the frame, on whichever of
+its two placement paths ran: the snap path (the Wall Outlet snaps to a beam, so a Rail aim takes
+it) or the placement path (a Junction is not a beam). Two things vanilla does only for its own two
+children are done for the third: the cable's second end is pointed at the Rail Outlet hologram's
+power connection while it is the choice, and after construction the built cable is connected to
+the built Outlet's, because vanilla replaces a hologram connection with the built one only for
+the children it knows. Vanilla builds the active child and bills it, as it does its own.
+
 ### Verify
 
 - A terminal-mounted Outlet prevents Rail continuation, and dismantling it reopens the terminal
   without retroactive coupling.
 - Aiming at a Rail end face never produces a body attachment.
 - Looking at an Outlet shows its used / total Power Lines.
+- A Power Line's second end aimed at a Rail body, a Rail's open terminal and a Junction's open
+  terminal builds a Power Rail Outlet there and attaches to it, and the Outlet carries power;
+  aimed at a wall or the ground it builds vanilla's Wall Outlet or Power Pole as before. Ctrl
+  steps a body mount by the metre. Untested in multiplayer: the second end of a client's cable
+  arrives at the server through the construction message (§16.7's caveat applies).
 
 ---
 
@@ -724,7 +763,7 @@ terminals land where Junction faces would. A Rail dragged away from (or into) th
 on the surface. Diagonal and Free-form modes, tilted or rotated surfaces and locked holograms keep the
 Painted Beam's behaviour, and a terminal snap at either end wins over the lattice.
 
-**Clearance is soft** on all four buildables, matching vanilla beams, supports and connectors.
+**Clearance is soft** on all five buildables, matching vanilla beams, supports and connectors.
 Rails route through walls and machines as beams do, and adjacent lanes never reject one another.
 The 1 m lane system is a layout convention supported by guidelines, not a clearance constraint —
 which is why generated-bridge validity (§10.4 step 10) and the crossing-Rail rejection (§7.4) are
@@ -853,10 +892,13 @@ lights readable regardless of paint.
 
 ## 13. Progression and costs
 
-**Unlock.** One **Power Rails** package in the AWESOME Shop unlocks all four buildables, visible
-after **Basic Steel Production**, at a baseline **4 FICSIT Coupons**. It is self-contained: it
-neither requires nor grants the vanilla Structural Beam or Wall Outlet packages, grants no cosmetic
-entitlement, and contains only the single Outlet tier.
+**Unlock.** One **Power Rails** package in the AWESOME Shop unlocks all seven buildables — the
+four and the three Wireless Outlet tiers — visible after **Basic Steel Production**, at a
+baseline **4 FICSIT Coupons**. It is self-contained: it neither requires nor grants the vanilla
+Structural Beam or Wall Outlet packages and grants no cosmetic entitlement. The Wireless Outlet
+recipes take Quickwire, which needs Caterium research in the MAM — a different path from Basic
+Steel Production — so those three can be visible before they are craftable, as vanilla recipes
+are elsewhere; a second package gated on that research stays an option.
 
 | Buildable | Baseline recipe | Derivation |
 | --- | --- | --- |
@@ -864,6 +906,7 @@ entitlement, and contains only the single Outlet tier.
 | **Junction** | 1 Steel Beam + 1 Cable | Steel continuity plus one conductive-node Cable. A node joins runs rather than extending one, so it costs no more than the 10 m of Rail it sits between — the six-way join is basic factory plumbing, not a tier of its own. |
 | **Outlet** | 4 Wire + 1 Iron Rod | Identical to vanilla Wall Outlet Mk.1 |
 | **Cap** | 1 Concrete | Early-game non-conductive cue without an Oil Processing prerequisite |
+| **Wireless Outlet Mk.1 / Mk.2 / Mk.3** | 4 / 8 / 16 Quickwire + 1 Iron Rod | The Outlet's rod, with Quickwire for the wire: the "signal" material marks the smarter outlet without making it dear, and the doubling follows the doubling range (§16.6) |
 
 Both Outlet host modes share the recipe. Rail and Junction deliberately share Steel Beam as their
 structural language; Concrete is reserved for the visibly insulating Cap, which contains no Cable
@@ -971,9 +1014,10 @@ that tuning:
   test has been run.)*
 - Loading discovers no couplings that were not saved.
 - No per-tick or periodic scan exists at any network size.
-- Editor Data Validation reports all four Blueprint leaves valid before cooking: required mesh
+- Editor Data Validation reports all seven Blueprint leaves valid before cooking: required mesh
   present, functional components native, six Junction face terminals, one Outlet Power Connection
-  at `mMaxNumConnectionLinks = 4`, all four non-lightweight.
+  at `mMaxNumConnectionLinks = 4`, the Wireless Outlets' at 0 with their tier's `mRange`, all
+  non-lightweight.
 - A save with a Rail backbone, a Junction, two Outlets, a generator and a machine stays powered
   after the mod is removed with the README's redirects in place.
 
@@ -1001,9 +1045,257 @@ that tuning:
 | Outlet | Valid targeted Rail body | Body-mounted Outlet |
 | Outlet | Open terminal | Terminal-mounted Outlet plus Coupling |
 | Outlet | Coupled/capped terminal, or Junction body | Invalid |
+| Wireless Outlet | As the Outlet, all three rows | As the Outlet; the range sphere shows the tier's reach |
 | Started Power Line | Existing Outlet Power Connection | Ordinary Power Line |
 | Any construction | Resulting coincident opposing open terminals | Free Coupling |
 | Blueprint BP terminal | Accepted separated OB terminal | Costed generated Rail, coupled both ends |
+
+---
+
+## 16. Power Rail Wireless Outlet
+
+Numbered after §15 so that no earlier section moves: §9–§15 are referenced from code and
+generated assets, and this is a buildable of its own rather than a mode of the Outlet.
+
+Three tiers — **Mk.1, Mk.2, Mk.3** — identical in every rule and differing only in range and
+recipe. Each has one Power Connection, which is hidden: no Power Line can be attached to it
+(`mMaxNumConnectionLinks = 0`), and every link to a machine is a hidden connection from the
+machine's component to it. Through it the outlet is an ordinary node of its Rail network, so a
+linked machine is on that network's circuit exactly as if a cable ran to an Outlet there: it
+counts for the circuit's capacity and consumption, it trips the circuit's fuse, it reads the
+circuit's power state. The outlet does not generate, store or switch anything.
+
+### 16.1 Placement
+
+- Body-mounted and terminal-mounted exactly as §8.1 and §8.2, including the private one-sided
+  terminal interface, invariant 4, the no-nudge rule and the end-face rule. The hologram family
+  is the Outlet's; only the preview mesh and the built class differ.
+- Inside a Blueprint Designer (§10.1) it links the machines of that same Designer and no
+  others, under every rule below; those links are hidden connections on both ends, so the
+  blueprint carries them, and a placed copy adopts them and then links at placement like a
+  built one. A world outlet never links a Designer machine and the reverse (§16.2).
+
+### 16.2 Eligible machines
+
+A machine connection is eligible for an outlet when all of the following hold. The test is the
+same whoever asks — the outlet at its query, the machine at its arrival, either on a change.
+
+- It is a visible power connection on an `AFGBuildableFactory` — machines, generators, Power
+  Storage, train and drone stations, anything that draws or supplies through a factory power
+  connection. Never a power pole, Wall Outlet, Power Line, switch, Rail-topology host or another
+  Wireless Outlet — nor the Personnel Elevator: its socket knobs are its floor stops', each a pole
+  that takes several cables, and the elevator conducts between its floors, so it is infrastructure
+  with a lift attached; the elevator's own connection is hidden and was never a candidate. Generators and Power Storage are eligible on purpose: "connected" has one
+  meaning, and the mod page says so.
+- It has **no live Power Line attached** (a Power Line being dismantled no longer counts), and
+  no hidden connection to another *buildable* other than a Wireless Outlet. A cable, or another
+  mod's hidden feed, makes it ineligible regardless of the machine's power state — the outlet
+  never competes with a wire. A hidden connection to equipment does not count: the Hoverpack
+  attaches to a machine's connection that way while the player flies near it, and hovering by
+  does not wire a machine.
+- The straight-line distance from the outlet's link origin — the top of its body, where the
+  lines leave — to the machine's connection point is at most the outlet's range, **and the
+  straight line between the two points is clear**: one trace against world geometry and
+  buildables, ignoring only the outlet, its host and the machine itself. A buildable on the line
+  blocks when its class is, or derives from, one of the outlet's **blocking classes**; anything
+  that is not a buildable — terrain, a cliff — blocks regardless; a Power Line never blocks, by
+  rule, whatever the list says. The list is **what sections a factory**: the foundation family
+  (`AFGBuildableFoundation` — foundations, ramps, and roofs, which are ramps) and the wall family
+  (`AFGBuildableWall` — walls, doors, windows, gates — and `AFGBuildableCornerWall`). A Rail is
+  wired to one circuit and one circuit usually belongs to one section of a factory, and those are
+  the pieces that make a section; a machine, pillar, beam, walkway, stair, cable or Rail between
+  an outlet and a machine does not block. A **frame** foundation, ramp or wall never blocks
+  either: it is the one sectioning piece built to be seen through, and nobody places one to cut
+  a circuit. Vanilla gives frames no class or flag of their own, so this is the mod's one
+  name-based rule: a class on the blocking list whose name carries vanilla's `Frame` marker
+  (`Build_Foundation_Frame_01`, `Build_Flat_Frame_01`, `Build_Ramp_Frame_01`,
+  `Build_Ramp_Frame_Inverted_01`, `Build_Wall_Frame_01`; windows, doors and gates carry their own
+  words) is passed through. The line that would be drawn is the line that must be free, so what
+  the player sees is the rule.
+- Both ends are in the same build space (§10.1): both in the world, or both inside one Blueprint
+  Designer.
+
+A machine with several power connections is eligible per connection; in practice vanilla
+machines have one.
+
+### 16.3 The one-outlet rule
+
+Every eligible machine connection is linked to **at most one** outlet: the nearest one in range
+with a clear line. Ties (equal distance to half a centimetre) are broken by the outlets' actor
+names, so the result is the same on every load. Consequences:
+
+- A machine between two outlets on unrelated networks joins the nearer one and never both;
+  priority switches and separate grids stay separate (invariant 16).
+- Building a nearer outlet moves the machine's link to it; the farther outlet drops the link the
+  same moment, and both ends' visuals follow.
+- Dismantling an outlet releases its machines, and each of them links to the next nearest outlet
+  in range with a clear line, if any.
+
+### 16.4 Link lifecycle
+
+No polling (invariant 17). Every link change is the direct result of one event, and each event
+performs one bounded operation:
+
+| Event | Operation |
+| --- | --- |
+| Outlet built or placed from a blueprint | One overlap of the range for factory buildables; each eligible connection is linked here if unlinked, or moved here if its current outlet is farther. |
+| Outlet loaded from a save | Nothing is inferred: the saved hidden connections ARE the links (invariant 6). The outlet reads them back from its own connection and registers in the outlet index. |
+| Machine built, placed from a blueprint or loaded | If eligible and unlinked, it asks the outlet index for the nearest outlet in range with a clear line and links to it. A loaded machine with a saved link keeps it. |
+| Power Line attached to a linked machine | The link is dropped (the machine is now wired). |
+| Power Line removed from a machine in range | The machine becomes eligible and links as above. |
+| Machine dismantled | Its link is dropped by the outlet; the outlet never holds a dead reference. |
+| Outlet dismantled | Out of the index first, then every link dropped; each released machine re-links as in §16.3. Full refund, previewed; dismantling the outlet's host dismantles the outlet (§8.3). |
+| Any buildable built within an outlet's range | The outlet re-traces the links whose line passes through the new buildable's bounds (a build can cut one). Bounded by the index: only outlets whose range reaches the buildable's bounds are asked. For a foundation or wall — a lightweight instance, whose collision may not answer a trace on the frame it is added — a link crossing its bounds is dropped on the bounds alone when its class blocks; its footprint is its box. |
+| Any buildable removed within an outlet's range | The outlet re-runs its query, ignoring the leaving buildable (a removal can clear a line). |
+| Machine built in, or removed from, a Blueprint Designer | As "machine built" / "machine dismantled", within that Designer's space. |
+| Range or blocking list changed (console, §16.6) | Every outlet re-tests its links and re-runs its query. Testing facility, not gameplay. |
+
+The engine mechanics behind the table: construction and removal of an actor buildable are
+broadcast by the Buildable Subsystem (`mBuildableAddedDelegate`, `mBuildableRemovedDelegate`);
+a Power Line's attachment is the connection's own `OnConnectionChanged`. Five events have no
+broadcast and are reached by SML hooks, each handing one fact to the subsystem: a Power Line's
+removal (`AFGBuildable::Dismantle_Implementation` on the wire, before — the connection's
+`OnConnectionChanged` fires only once the wire is already gone, and a wire's removal is not
+broadcast), a foundation or wall becoming an instance
+(`AFGLightweightBuildableSubsystem::AddFromBuildable`, after — those convert inside their own
+BeginPlay before AddBuildable is reached and fire no delegate), its instance being removed
+(`AFGLightweightBuildableSubsystem::RemoveByInstanceIndex`, before, while its transform is still
+on record), and a Designer buildable's arrival and removal
+(`AFGBuildableSubsystem::OnDesignerBuildableSpawned`,
+`AFGBuildableBlueprintDesigner::OnBuildableDismantledInsideDesigner` — vanilla keeps Designer
+buildables out of the subsystem's delegates). The wired test counts wires that are not being
+dismantled (hidden connections never count), and the link is `AddHiddenConnection` /
+`RemoveHiddenConnection`, the Coupling's own mechanism. A buildable hit by the trace is
+classified as an actor directly, or through its abstract-instance handle
+(`AAbstractInstanceManager::ResolveHit`, then the owner for a machine's instanced mesh or
+`AFGLightweightBuildableSubsystem::ResolveLightweightInstance` for a foundation's, which also
+gives its class and transform), so a lightweight instance is classified exactly like an actor,
+and a leaving one is ignored by identity as a leaving actor is by name; the temporary actor the
+lightweight system spawns for the build gun's aim carries its instance's identity and is treated
+as that instance. The build space of a
+vanilla machine or hologram is its `mBlueprintDesigner` field, read by reflection (the getter is
+not linkable).
+
+An outlet whose Rail is unpowered still links: a link means "connected", not "powered", as with a
+cable. The outlet's indicator says which.
+
+### 16.5 Visuals
+
+- **Indicator**: concentric ring grooves in the top of a short body on the Outlet's pad (a
+  charging-pad reading), lit by the same state material swaps as every indicator (§12): on a
+  terminal the mount's state, on a body the host's power, as the Outlet.
+- **Link lines**: one straight line from the outlet's link origin to each linked machine's
+  connection point, in two states that are the outlet's own power, from the same event as its
+  indicator. **Unpowered**: a faint, dashed slim line (1.5 cm; dash and gap each one bead long), the
+  "connected, not powered" reading — dashed so it is never read as a lit line.
+  **Powered**: no line at all, only a bead of the power colour travelling from the outlet into
+  the machine — it grows out of the outlet's body and shrinks into the machine's connector, one
+  bead every two seconds, a standby pulse rather than a current. Permanent — they replace cables,
+  so they are neither a performance nor a clutter concern beyond what cables would be. Nothing is
+  drawn for machines in range but not linked (wired, or taken by a nearer outlet). The bead is
+  one additive material animated on the GPU from the vertex's position along the line and the
+  line's length read back from the instance's own scale: no tick, no per-frame parameter, two static instances (unpowered,
+  powered) swapped per outlet, so every outlet's lines in one state batch together. Its period,
+  length and brightness are the material script's tuning constants (`acpr_materials.py`).
+- **Link ends**: the line says where a link goes; at the machine, a short open tube round the
+  linked connection's power socket says that it has one. Unpowered, glowing rings stand still on
+  a tube round the socket's discs — outside the whole socket, so it shows on every machine;
+  powered, a band crawls up that tube and up a second one round the knob's core between the
+  discs, half a period apart, so it climbs one and then the other (the warp-core reading on a
+  socket that already has the ribs) — the two states read differently at a glance. The tubes are
+  the same material as the line at a few centimetres' bead length, so the rings are the line's
+  dashes and the band its bead. They fit the socket knob of the machine they are on: the knobs
+  differ between machines (radius, height, where they stand relative to the connection point,
+  and on a few machines the axis, which is sideways or tilted), and a
+  packaged game cannot read a mesh, so the fits are measured in the editor off every vanilla
+  machine's mesh (`Scripts/acpr_sockets.py`: the knob is the low-poly cylinder of edge loops
+  nearest the connection's axis, found by circle fit; every vanilla socket is an insulator stack,
+  and the tube wraps its discs) and shipped as a table, `Config/ACPR_Sockets.json` — readable,
+  committed — whose text the script also writes into the `Content/Data/DA_ACPR_SocketTable` asset
+  the packaged mod loads, keyed by class path and connection name. A machine is looked up
+  by its class and then its parent classes, so a mod's child of a vanilla machine inherits the
+  fit; a class the table does not know gets the default fit (the standard knob). A hand-made
+  `Config/ACPR_Sockets_Manual.json` corrects measured fits field by field (a machine whose visible
+  mesh is not the one that can be measured — the Smelter's vertex-animated body) and ships with
+  the table; a player's own `Configs/AutoConnectingPowerRails_Sockets.json`, beside SML's config
+  files, overlays both the same way — the way to fit a modded machine's socket without a release;
+  `acpr.ReloadSockets` in the console reads both again and refits every outlet's link ends, so an
+  entry can be tuned by eye without restarting the game. Only linked
+  machines carry one: a machine in range without a link shows nothing, which is the reading
+  wanted.
+- **Dismantle aim**: an outlet aimed at in dismantle mode shows its range as the translucent
+  sphere and draws its lines in the powered state whether or not it is powered — what it reaches
+  and what it holds, at a glance. Local to the player looking; nothing replicates.
+- **Placement preview**: while a hologram is held, the player sees what §16.3 would decide the
+  moment it is built.
+  - Placing a *machine*: every outlet whose range reaches a power connection of the hologram shows
+    its range sphere. The outlet the machine would link to draws a powered line to that
+    connection. Every other outlet in range draws a faint line: the whole line when its path is
+    clear (the outlet the machine would fall back to if the first one went away), cut short at the
+    obstacle when it is not (what blocks it). A machine with no outlet in range sees nothing.
+  - Placing an *outlet*: the hologram shows the tier's range as the sphere about the link origin,
+    a powered line to every machine connection it would take at construction (unwired, in range,
+    not held by a nearer outlet, clear) and a faint line cut short at the obstacle to every one in
+    range it is blocked from. Machines it would not touch draw nothing.
+  - The preview exists only while a local hologram does, and re-asks only when the hologram has
+    moved or a link event has happened since its last answer; each answer is §16.4's bounded
+    lookup, so invariant 17 holds — the preview follows the cursor the way the hologram itself
+    does, and nothing scans the world. Nothing of a preview survives construction.
+
+### 16.6 Tiers and range
+
+| Tier | Range | Purpose |
+| --- | --- | --- |
+| Mk.1 | 8 m | Sockets along the Rail's own foundation row — the "mostly visual" convenience. |
+| Mk.2 | 16 m | A production row from one point: 2–4 machines. |
+| Mk.3 | 32 m | A block; where the convenience becomes real. |
+
+The range is measured to the machine's connection point, not its footprint, so a large machine
+matters less than where its socket sits relative to the Rail. The range is a class default on
+each tier's buildable (`mRange`, written by `acpr_buildables.py` like every other value), so a
+tier is a one-number change; the blocking list is likewise a class default (`mBlockingClasses`).
+For testing, two console variables override every tier and re-evaluate all links when changed
+(§16.4): `acpr.WirelessRange` (centimetres, `0` = the tiers' own values) and
+`acpr.WirelessBlockers` (comma-separated buildable class names, empty = the outlets' own lists).
+Neither persists.
+
+### 16.7 Persistence, multiplayer, performance
+
+- Links are the machines' saved hidden connections; nothing else is needed to restore them. The
+  outlet additionally replicates its list of link targets — connection point and the socket fit
+  resolved to world space — for the link lines and link ends on clients, which need no table. Blueprint save and placement, Junction insertion and host dismantle remap the outlet as
+  they do the Outlet (§8.3).
+- Server-authoritative (invariant 13); clients draw what is replicated. Untested in multiplayer,
+  like the rest (§14).
+- Cost: one overlap per outlet construction, one index lookup per machine arrival or wire change,
+  one segment-vs-box test per link when something is built nearby and a trace only for the links
+  that pass through it; no tick, no timer. The outlet index is a spatial grid bucketed at the
+  longest tier's range, so a lookup touches a constant number of buckets. The line visuals add
+  no CPU work: the bead is shader-side, the lines are instances, and the powered state is a
+  material swap on an event. The placement preview is the one per-frame consumer and is gated
+  as §16.5 says.
+- The swatch rule (§5.5) applies: a built or placed outlet takes its host's customization.
+
+### Verify
+
+- A machine within range of two outlets on separate circuits is on exactly one circuit, the
+  nearer outlet's; building a nearer outlet moves it; dismantling that one moves it back.
+- Attaching a cable to a linked machine drops the link at once; removing the cable restores it.
+- A wall built across a link cuts it; dismantling the wall restores it. A frame wall built
+  across a link leaves it.
+- A save with linked machines reloads with the same links and no re-evaluation.
+- A generator in range feeds the Rail network; a Power Storage in range charges from it.
+- A linked Constructor, Smelter, Miner and Water Pump each show the link end tube round their
+  socket knob, outside its surface, along its axis — the Water Pump's sideways. An entry in
+  `Configs/AutoConnectingPowerRails_Sockets.json` changes one of them on the next load.
+- Inside the Designer an outlet links the Designer's machines and no world machine; the
+  blueprint carries those links, and a placed copy has them and links at placement.
+- A powered outlet's lines show only the travelling bead and a band crawling up each linked
+  socket; an unpowered outlet's a faint dashed line and standing rings on each socket.
+- Holding a machine hologram in range of two outlets shows both spheres, one powered line and one
+  faint; a wall between the machine and the second outlet cuts the faint line at the wall.
+- Aiming at a built outlet in dismantle mode shows its sphere and its lines powered.
+- `acpr.WirelessRange 0` restores the tiers' own values and the links that go with them.
 
 ---
 
@@ -1046,12 +1338,21 @@ that tuning:
 - **Outlet** — recognizable Wall Outlet silhouette: compact ribbed cylindrical body, dark rings,
   metal rims, the accent on the chamfered top ring, standing on a slim square pad the Rail's own
   0.5 m across. The pad is part of the Outlet — its own component, one per seat kind, flush with
-  the seat — rather than a separate clamp, and carries no accent: on a Rail body it interrupts
-  the groove, which is what says *power leaves the network here*; on a Rail end it exactly
-  matches the profile it caps. Secondary to the Rail in the mod icon, clearly recognizable
+  the seat (on a Rail body a millimetre proud of the flat, so it covers the groove wall's top
+  edge rather than leaving it as a lit seam around the plug) — rather than a separate clamp, and
+  carries no accent: on a Rail body it interrupts the groove, which is what says *power leaves
+  the network here*; on a Rail end it exactly matches the profile it caps. Secondary to the Rail in the mod icon, clearly recognizable
   in-world.
 - **Cap** — dark ceramic/concrete/composite face, chamfered to an octagon at the accent width,
   with a restrained host-coloured collar, its dark edge visible and targetable from the front.
+- **Wireless Outlet** — the Outlet's drum cut to a puck, 0.12 m tall on the same pad, the same
+  chamfered accent ring, and three concentric ring grooves in its top face as the cue — a
+  charging pad, read from above. Its link lines leave the top's centre: straight, in the power
+  colour — unpowered, a faint slim line at a fraction of the indicator's brightness, so it reads as
+  a link and not as a light; powered, the line gives way to a slow travelling bead, the one
+  animated element in the mod and the strip theme's exception made on purpose, because a link
+  carrying power is the one thing here that has a direction. The three tiers share the body and
+  the icon — a link is a state, not the thing, so the icon shows none — and differ by name.
 
 An open terminal, a coupled one, a terminal-mounted Outlet and a Cap must be distinguishable at
 ordinary build distance — by §12's palette close up, and by silhouette beyond it: an Outlet is
@@ -1066,9 +1367,10 @@ the icons are done.
 ### A.3 Build menu and icons
 
 English-only, no tutorial, so discoverability rests on the Build Menu, names, descriptions, icons,
-terminal highlighting and hologram feedback. All four appear in the **Power** category and fold into
-the vanilla **Power** dismantle filter, searchable under *power*, *rail*, *beam*, *outlet*,
-*junction*, *cap*.
+terminal highlighting and hologram feedback. All seven appear in the **Power** category and fold
+into the vanilla **Power** dismantle filter, searchable under *power*, *rail*, *beam*, *outlet*,
+*junction*, *cap*, *wireless*. "Power Rail Wireless Outlet" rather than "Wireless Power Rail
+Outlet", so the family sorts together.
 
 | Buildable | Baseline description | Icon direction |
 | --- | --- | --- |
@@ -1076,10 +1378,12 @@ the vanilla **Power** dismantle filter, searchable under *power*, *rail*, *beam*
 | **Power Rail Junction** | A six-way Power Rail node. Place it standalone, snap it to a terminal, or insert it into one Rail; every unoccupied face accepts a Rail, Outlet or Cap. | Compact cube in Beam Connector visual language |
 | **Power Rail Outlet** | Mounts on a Power Rail body or open terminal and provides one connection point for up to four Power Lines. | Wall Outlet silhouette on its pad |
 | **Insulated Terminal Cap** | Blocks a Rail terminal from snapping and blueprint auto-connection. | Dark covered terminal face with a restrained insulation cue |
+| **Power Rail Wireless Outlet Mk.1 / Mk.2 / Mk.3** | Links every unwired machine within 8 / 16 / 32 m to the Power Rail network without a cable — the nearest outlet takes each machine, and a foundation, wall or roof on the line blocks the link. No Power Line sockets. | The wireless puck on its pad, the same for all three tiers |
 
 The icons are rendered from the final meshes by `Scripts/acpr_icons.py`, lit by the editor's
 thumbnail cubemap, with the parts powered: each buildable alone on a transparent background (512 px
-and 64 px, the Cap as a plate seen three-quarters on), and the mod icon — the four buildables above
+and 64 px, the Cap as a plate seen three-quarters on, each Wireless Outlet tier with its link lines),
+and the mod icon — the four original buildables above
 a run of two Rails bridged by a Rail hologram with the link mark at each coupling, an Outlet with a
 cable on the front Rail, and the mod's name over an orange rule. The buildable icons are
 transparent; the mod icon exists as the transparent plugin icon with white lettering and the
@@ -1186,6 +1490,15 @@ steps is empty.
   orients it once at `BeginPlay` while vanilla's own code stretches it per frame. The general
   rule survives in its corrected form: **a vanilla buildable's component set is part of its
   hologram's contract — know what the hologram will do with each component before adding one.**
+- **The Wireless Outlet is an `AACPROutlet` subclass, one C++ class for three tiers.** It
+  inherits the mount, the bond, the registration, the swatch and both pads; its socket's wire
+  budget is zero, which `ConfigureAsWireSocket` turns into the hidden connection a link needs.
+  The three `Build_` blueprints differ in `mRange` only. The rules live in
+  `UACPRWirelessLinkSubsystem`, a world subsystem beside the terminal registry, with its own
+  spatial grid over outlets bucketed at the longest range; the outlet owns its links, their
+  replicated line ends and one instanced-mesh component for the lines. Its hologram is the
+  Outlet's with a runtime range-sphere component, made the way the blueprint manager makes its
+  link icons, so it never reaches the built actor.
 - **A hologram's preview is duplicated from the buildable CDO's component templates**
   (`AFGHologram::SetupComponent`), so a mesh assigned at `BeginPlay` reaches instances but never the
   preview. Anything the hologram must draw has to be on the template, which means `PostLoad` or the
@@ -1327,6 +1640,20 @@ steps is empty.
  · [Customizer](https://satisfactory.wiki.gg/wiki/Customizer) · [Power Line](https://satisfactory.wiki.gg/wiki/Power_Line)
  · [Wall Outlets](https://satisfactory.wiki.gg/wiki/Wall_Outlets) · [Hoverpack](https://satisfactory.wiki.gg/wiki/Hoverpack)
  · [Blueprint](https://satisfactory.wiki.gg/wiki/Blueprint)
+- §16's engine surface, all from the FactoryGame headers, the AbstractInstance plugin and SML: `FGBuildableSubsystem.h`
+  (`mBuildableAddedDelegate`, `mBuildableRemovedDelegate`, `OnDesignerBuildableSpawned`),
+  `FGCircuitConnectionComponent.h` (`OnConnectionChanged`, `AddHiddenConnection`, `GetWires`,
+  `GetHiddenConnections`), `FGBuildableWire.h` (`GetConnection`), `FGLightweightBuildableSubsystem.h`
+  (`AddFromBuildable`, `RemoveByInstanceIndex`, `GetRuntimeDataForBuildableClassAndIndex`, `ResolveLightweightInstance`,
+  `FLightweightBuildableInstanceRef::GetBuildableTransform`),
+  `FGBuildable.h` (`Dismantle_Implementation`, `GetIsDismantled`,
+  `GetLightweightInstanceData`, `StartIsLookedAtForDismantle_Implementation`), `FGBuildableBlueprintDesigner.h`
+  (`OnBuildableDismantledInsideDesigner`), `FGBuildableHologram.h` (`BeginPlay`, `GetCachedPowerConnectionComponents`),
+  `AbstractInstanceManager.h` (`ResolveHit`, `ResolveOverlap`, `GetOwnerByHandle`), `InstanceData.h`
+  (`FInstanceData::StaticMesh`, `RelativeTransform`), SML `Patching/NativeHookManager.h` (`SUBSCRIBE_METHOD`,
+  `SUBSCRIBE_METHOD_AFTER`, `SUBSCRIBE_METHOD_VIRTUAL`, `SUBSCRIBE_METHOD_VIRTUAL_AFTER`); the engine's
+  the material nodes `LocalPosition` (origin Instance), `Transform` (Instance to World),
+  `Time`, `Saturate` (Epic's Python reference).
 - Precedents: [VerticalConveyorAutoConnect notes](https://github.com/ZeeOcho/VerticalConveyorAutoConnect/blob/main/DEVELOPMENT.md)
  · [Cable Choices Plus — rail power-box snapping](https://github.com/DavidHGillen/Satisfactory_AB-CableChoices/blob/master/PluginFolder/Source/AB_CableMod/Private/ABTrackPowersnapHologram.cpp)
 ---

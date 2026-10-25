@@ -11,16 +11,18 @@ what matters out of each asset and writes it as JSON:
     textures    size, compression, sRGB, LOD group, mip settings
     blueprints  the properties the scripts write (descriptors, recipes, schematic, buildables)
                 and every mesh component: class, mesh, transform, material overrides, profile
+    data        the socket table asset's JSON (acpr_sockets.py)
     inventory   every asset under /AutoConnectingPowerRails with its class
 
 Run inside the editor, before and after a regeneration:
     Window > Developer Tools > Output Log, dropdown "Cmd" -> "Python", then:
     exec(open(r"<plugin>/Scripts/acpr_fingerprint.py").read())
 
-LABEL names the output, Saved/ACPR_Fingerprint/<LABEL>.json. Run on its own it writes
-before.json; acpr_build_all.py runs it last with the label "after", and with a before.json
-beside it the differences are printed at the end and written to diff.txt. For a clean checkout,
-copy before.json from the old project's Saved/ACPR_Fingerprint/ into the new one's first.
+LABEL names the output, Scripts/Temp/acpr_fingerprint_<LABEL>.json. Run on its own it writes
+acpr_fingerprint_before.json; acpr_build_all.py runs it last with the label "after", and with a
+before file beside it the differences are printed at the end and written to
+acpr_fingerprint_diff.txt. For a clean checkout, copy the before file from the old project's
+Scripts/Temp/ into the new one's first.
 """
 
 import json
@@ -54,6 +56,10 @@ BLUEPRINT_PROPERTIES = {
                "m_default_length", "m_max_length", "m_length_per_cost", "m_uses_distance_for_zooping",
                "m_rail_mesh_asset", "m_standoff", "m_body_inset", "m_max_power_lines",
                "m_half_extent", "m_grid_pitch", "m_profile_scale",
+               "m_range", "m_blocking_classes", "m_link_origin_height", "m_link_line_width",
+               "m_link_material", "m_link_material_powered", "m_range_sphere_authored_radius",
+               "m_link_end_material", "m_link_end_material_powered",
+               "m_link_end_inner_material", "m_link_end_inner_material_powered",
                "m_managed_by_lightweight_buildable_subsystem", "m_can_contain_lightweight_instances"),
     "Holo_": ("m_nudge_distance_coarse", "m_nudge_distance_fine", "m_roll_step_degrees",
               "m_roll_step_fine_degrees", "m_terminal_snap_range", "m_surface_offset",
@@ -210,7 +216,7 @@ def _components(blueprint):
         subsystem = unreal.get_engine_subsystem(unreal.SubobjectDataSubsystem)
         library = unreal.SubobjectDataBlueprintFunctionLibrary
         for handle in subsystem.k2_gather_subobject_data_for_blueprint(blueprint) or []:
-            obj = library.get_object(library.get_data(handle))
+            obj = library.get_associated_object(library.get_data(handle))
             if obj is None or not isinstance(obj, unreal.ActorComponent):
                 continue
             entry = {"class": obj.get_class().get_name()}
@@ -252,7 +258,7 @@ def _blueprint(asset, name):
 # ---------------------------------------------------------------------------
 
 def fingerprint():
-    result = {"inventory": {}, "meshes": {}, "materials": {}, "textures": {}, "blueprints": {}}
+    result = {"inventory": {}, "meshes": {}, "materials": {}, "textures": {}, "blueprints": {}, "data": {}}
     paths = sorted(unreal.EditorAssetLibrary.list_assets(ROOT, recursive=True, include_folder=False))
     for path in paths:
         object_path = path.split(".")[0]
@@ -271,6 +277,10 @@ def fingerprint():
                 result["textures"][name] = _texture(asset)
             elif isinstance(asset, unreal.Blueprint):
                 result["blueprints"][name] = _blueprint(asset, name)
+            elif isinstance(asset, unreal.DataAsset):
+                # The socket table asset: its JSON text, as data (acpr_sockets.py).
+                result.setdefault("data", {})[name] = {"class": asset.get_class().get_name(),
+                                                       "json": json.loads(_prop_raw(asset, "json") or "{}")}
         except Exception as error:
             result.setdefault("errors", {})[name] = str(error).splitlines()[0]
     return result
@@ -303,11 +313,18 @@ def diff(before, after):
     return lines
 
 
-def main():
-    directory = os.path.join(os.path.abspath(str(unreal.Paths.project_saved_dir())), "ACPR_Fingerprint")
+def _temp_dir(*parts):
+    """<mod>/Scripts/Temp — where every script writes its log and scratch output; git ignores it."""
+    directory = os.path.join(os.path.abspath(str(unreal.Paths.project_dir())), "Mods", "GameFeatures", MOD,
+                             "Scripts", "Temp", *parts)
     os.makedirs(directory, exist_ok=True)
+    return directory
+
+
+def main():
+    directory = _temp_dir()
     result = fingerprint()
-    path = os.path.join(directory, LABEL + ".json")
+    path = os.path.join(directory, "acpr_fingerprint_" + LABEL + ".json")
     with open(path, "w", encoding="utf-8") as handle:
         json.dump(result, handle, indent=2, sort_keys=True)
     _log("{0}: {1} assets, {2} meshes, {3} materials, {4} textures, {5} blueprints -> {6}".format(
@@ -316,20 +333,31 @@ def main():
     for name, error in result.get("errors", {}).items():
         _log("  error reading {0}: {1}".format(name, error))
 
-    before = os.path.join(directory, "before.json")
+    before = os.path.join(directory, "acpr_fingerprint_before.json")
     if LABEL == "after" and os.path.exists(before):
         with open(before, "r", encoding="utf-8") as handle:
             lines = diff(json.load(handle), result)
-        with open(os.path.join(directory, "diff.txt"), "w", encoding="utf-8") as handle:
+        with open(os.path.join(directory, "acpr_fingerprint_diff.txt"), "w", encoding="utf-8") as handle:
             handle.write("\n".join(lines) + "\n")
-        _log("{0} difference(s) against before.json{1}".format(len(lines), ":" if lines else ""))
+        _log("{0} difference(s) against acpr_fingerprint_before.json{1}".format(len(lines), ":" if lines else ""))
         for line in lines[:200]:
             _log("  " + line)
         if len(lines) > 200:
-            _log("  ... the rest is in diff.txt")
+            _log("  ... the rest is in acpr_fingerprint_diff.txt")
+
+
+def _write_log():
+    path = os.path.join(_temp_dir(), "acpr_fingerprint_log.txt")
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write("\n".join(_lines) + "\n")
+    _log("log written to " + path)
 
 
 try:
     main()
 except Exception:
-    unreal.log_error("[ACPR-FINGERPRINT] " + traceback.format_exc())
+    _log("the fingerprint stopped early:")
+    for _line in traceback.format_exc().splitlines():
+        _log("    " + _line)
+finally:
+    _write_log()

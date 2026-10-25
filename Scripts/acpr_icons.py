@@ -15,8 +15,8 @@ WHAT IT MAKES
     Content/Icons/T_ACPR_IconSmall_<Name>.uasset    64 x 64, the descriptor's small icon
     Resources/Icon128.png                           the plugin icon
     Resources/ModIcon512.png                        the image for the ficsit.app mod page, on a background
-    Saved/ACPR_Icons/*.png                          every rendered image, for looking at
-    Saved/ACPR/ACPR_icons_log.txt                   this log
+    Scripts/Temp/Icons/*.png                        every rendered image, for looking at
+    Scripts/Temp/acpr_icons_log.txt                 this log
 
 and writes the textures into Desc_PowerRail / Desc_PowerRailJunction / Desc_PowerRailOutlet /
 Desc_PowerRailCap (mSmallIcon, mPersistentBigIcon) and Schematic_PowerRails (mSchematicIcon,
@@ -58,7 +58,7 @@ SCHEMATIC_PATH = "/" + MOD + "/Schematics/Schematic_PowerRails"
 ICON_DIR = "/" + MOD + "/Icons"
 
 LABEL_PREFIX = "ACPR_Icon_"
-LOG_NAME = "ACPR_icons_log.txt"
+LOG_NAME = "acpr_icons_log.txt"
 
 # Rendered above the big icon's size and box-filtered down: the capture has no anti-aliasing of
 # its own, so the edges' smoothness comes from the supersample — 4 samples per big pixel for a
@@ -154,6 +154,8 @@ LINK_SIZE = (25.0, 39.0)                        # a link of the chain mark: acro
 LINK_BAR = 3.5
 LINK_RAISE = 48.0                               # the mark floats above the joint (rail top is at 25)
 LINK_MESH = "/Engine/BasicShapes/Cube"          # authored 100 uu, centred
+# §16's icons: the Wireless Outlet alone on its pad, read from above like the Outlet. No link
+# line — a link is a state, not the thing; the three tiers share the icon and differ by name.
 
 # The indicator is a material slot the buildables swap by state (ACPRIndicatorMaterial): the icons
 # show it powered, except an open terminal, which keeps its open colour. The accent is a tinted
@@ -199,14 +201,15 @@ def _plugin_dir():
     return os.path.join(_project_dir(), "Mods", "GameFeatures", MOD)
 
 
-def _saved_dir(name):
-    directory = os.path.join(os.path.abspath(str(unreal.Paths.project_saved_dir())), name)
+def _temp_dir(*parts):
+    """Scripts/Temp — where every script writes its log and scratch output; git ignores it."""
+    directory = os.path.join(_plugin_dir(), "Scripts", "Temp", *parts)
     os.makedirs(directory, exist_ok=True)
     return directory
 
 
 def _output_dir():
-    return _saved_dir("ACPR_Icons")
+    return _temp_dir("Icons")
 
 
 # ---------------------------------------------------------------------------
@@ -475,6 +478,25 @@ def _add_outlet(assembly, mount, mount_rotation):
     return _compose(top, frame).translation
 
 
+def _add_wireless_outlet(assembly, mount, mount_rotation):
+    """A Wireless Outlet on a Rail body — the Outlet's placement with the wireless body."""
+    body = _mesh("SM_ACPR_WirelessOutlet")
+    pad = _mesh("SM_ACPR_OutletBaseBody")
+    if not (body and pad):
+        return None
+    standoff = _default("Build_PowerRailWirelessOutletMk1", "m_standoff", 0.0)
+    inset = _default("Build_PowerRailWirelessOutletMk1", "m_body_inset", 0.1)
+    frame = unreal.Transform(mount, mount_rotation, unreal.Vector(1.0, 1.0, 1.0))
+    for mesh, offset in ((body, standoff - inset), (pad, -inset)):
+        location, rotation = _z_authored_onto_x(mesh, standoff=offset)
+        world = _compose(unreal.Transform(location, rotation, unreal.Vector(1.0, 1.0, 1.0)), frame)
+        assembly.add(mesh, world.translation, world.rotation.rotator())
+    origin, extent = _bounds_of(body)
+    top_x = standoff - inset + origin.z + extent.z
+    return _compose(unreal.Transform(unreal.Vector(top_x, 0.0, 0.0), unreal.Rotator(),
+                                     unreal.Vector(1.0, 1.0, 1.0)), frame).translation
+
+
 def _add_cable(assembly, start, run, sag):
     """A cable from `start` to `start + run`, hanging in a parabola of `sag` at its middle, as
     straight segments of the engine's cylinder. Dark, like the body swatch."""
@@ -514,6 +536,13 @@ def build_assemblies(materials):
     # The Outlet on a mount plane whose normal is +Z: pitch +90 turns the mount frame's +X up.
     outlet = Assembly("Outlet")
     _add_outlet(outlet, unreal.Vector(0.0, 0.0, 0.0), unreal.Rotator(roll=0.0, pitch=90.0, yaw=0.0))
+
+    # The three Wireless Outlet tiers, each the wireless body on its pad like the Outlet.
+    wireless = []
+    for tier in (1, 2, 3):
+        item = Assembly("WirelessOutletMk{0}".format(tier))
+        _add_wireless_outlet(item, unreal.Vector(0.0, 0.0, 0.0), unreal.Rotator(roll=0.0, pitch=90.0, yaw=0.0))
+        wireless.append(item)
 
     # The Cap alone, as authored: a plate lying in XY, pitched upright so its face is what the icon shows.
     cap = Assembly("Cap")
@@ -559,6 +588,9 @@ def build_assemblies(materials):
             ("PowerRailJunction", junction, unreal.Rotator()),
             ("PowerRailOutlet", outlet, across),
             ("PowerRailCap", cap, upright),
+            ("PowerRailWirelessOutletMk1", wireless[0], across),
+            ("PowerRailWirelessOutletMk2", wireless[1], across),
+            ("PowerRailWirelessOutletMk3", wireless[2], across),
             ("Mod", gallery, unreal.Rotator())]
 
 
@@ -1065,7 +1097,8 @@ def main():
         for material in materials.values():
             _discard(material)
 
-    for name in ("PowerRail", "PowerRailJunction", "PowerRailOutlet", "PowerRailCap"):
+    for name in ("PowerRail", "PowerRailJunction", "PowerRailOutlet", "PowerRailCap",
+                 "PowerRailWirelessOutletMk1", "PowerRailWirelessOutletMk2", "PowerRailWirelessOutletMk3"):
         big = textures.get((name, "big"))
         small = textures.get((name, "small"))
         if big and small:
@@ -1081,13 +1114,20 @@ def main():
     _log("{0} problem(s)".format(len(_problems)))
     for text in _problems:
         _log("  " + text)
-    log_path = os.path.join(_saved_dir("ACPR"), LOG_NAME)
+
+
+def _write_log():
+    log_path = os.path.join(_temp_dir(), LOG_NAME)
     with open(log_path, "w", encoding="utf-8") as handle:
         handle.write("\n".join(_log_lines) + "\n")
-    unreal.log("[ACPR-ICONS] log written to " + log_path)
+    _log("log written to " + log_path)
 
 
 try:
     main()
 except Exception:
-    unreal.log_error("[ACPR-ICONS] " + traceback.format_exc())
+    _log("the icon pass stopped early:")
+    for _line in traceback.format_exc().splitlines():
+        _log("    " + _line)
+finally:
+    _write_log()
