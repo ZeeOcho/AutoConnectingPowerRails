@@ -59,4 +59,15 @@ namespace ACPRSpec
 	 * registry indexes — are at most one full Rail further.
 	 */
 	constexpr float CrossingSearchRadius = RailMaxLength + JunctionHalfExtent + RailHalfWidth;
+
+	/**
+	 * §16.6: the Wireless Outlet's three tiers, as the C++ defaults behind the per-tier values
+	 * acpr_buildables.py writes onto Build_PowerRailWirelessOutletMk1..3. The C++ class default is
+	 * Mk.1's; the longest is what the outlet index is bucketed and every "outlets near here" query
+	 * is bounded by, so it has to be the largest range any tier can carry.
+	 */
+	constexpr float WirelessRangeMk1 = 800.0f;
+	constexpr float WirelessRangeMk2 = 1600.0f;
+	constexpr float WirelessRangeMk3 = 3200.0f;
+	constexpr float WirelessRangeMax = WirelessRangeMk3;
 }

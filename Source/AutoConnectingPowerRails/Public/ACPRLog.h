@@ -45,6 +45,8 @@ DECLARE_LOG_CATEGORY_EXTERN( LogAutoConnectingPowerRails, Log, All );
 #define ACPR_TAG_BP_ICON      TEXT( "ACPR-BP-ICON" )
 #define ACPR_TAG_BRIDGE       TEXT( "ACPR-BRIDGE" )
 #define ACPR_TAG_BRIDGE_SCALE TEXT( "ACPR-BRIDGE-SCALE" )
+#define ACPR_TAG_WIRELESS     TEXT( "ACPR-WIRELESS" )
+#define ACPR_TAG_WIRELESS_HOLO TEXT( "ACPR-WIRELESS-HOLO" )
 
 /** A line with a compile-time tag: ACPR_LOG( Verbosity, TAG, TEXT( format ), ... ). */
 #define ACPR_LOG( Verbosity, Tag, Format, ... ) \

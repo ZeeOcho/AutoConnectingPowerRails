@@ -1,0 +1,1732 @@
+{
+  "default": {
+    "axis": [
+      0.0,
+      0.0,
+      1.0
+    ],
+    "bottom": -28.0,
+    "core": 17.8,
+    "offset": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "radius": 29.5,
+    "top": 26.0
+  },
+  "game_changelist": "83",
+  "sockets": {
+    "/Game/FactoryGame/Buildable/Factory/AlienPower/Build_AlienPowerBuilding.Build_AlienPowerBuilding_C": {
+      "PowerConnection": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -21.93,
+        "core": 17.78,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/AlienPower/Mesh/SM_AlienPower_01.SM_AlienPower_01",
+        "offset": [
+          -3.08,
+          -2.2,
+          0.0
+        ],
+        "radius": 29.51,
+        "signature": {
+          "connection": [
+            377.3,
+            1043.6,
+            466.4
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/AlienPower/Mesh/SM_AlienPower_01.SM_AlienPower_01",
+              48869,
+              50364
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/AlienPower/Mesh/SM_AlienPower_proxy.SM_AlienPower_proxy",
+              896,
+              708
+            ]
+          ]
+        },
+        "top": 29.91
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/AssemblerMk1/Build_AssemblerMk1.Build_AssemblerMk1_C": {
+      "PowerInput": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -19.35,
+        "core": 17.76,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/AssemblerMk1/Mesh/AssemblerMk1_static.AssemblerMk1_static",
+        "offset": [
+          -8.58,
+          -2.65,
+          0.0
+        ],
+        "radius": 29.02,
+        "signature": {
+          "connection": [
+            483.5,
+            73.6,
+            675.0
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/AssemblerMk1/Mesh/AssemblerMk1_static.AssemblerMk1_static",
+              54057,
+              44505
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/AssemblerMk1/Mesh/SM_Assembler_VAT.SM_Assembler_VAT",
+              14813,
+              14292
+            ]
+          ]
+        },
+        "top": 32.48
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/Blender/Build_Blender.Build_Blender_C": {
+      "PowerConnection": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -23.97,
+        "core": 17.78,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/Blender/Mesh/SM_Blender_01.SM_Blender_01",
+        "offset": [
+          -0.48,
+          -1.82,
+          0.0
+        ],
+        "radius": 29.51,
+        "signature": {
+          "connection": [
+            -880.7,
+            -690.0,
+            1094.5
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/Blender/Mesh/SM_Blender_01.SM_Blender_01",
+              50007,
+              48034
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/Blender/Mesh/SM_Blender_VAT.SM_Blender_VAT",
+              23907,
+              31024
+            ]
+          ]
+        },
+        "top": 27.86
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/CheatFluidPump/Build_CheatFluidPump.Build_CheatFluidPump_C": {
+      "PowerInput": {
+        "axis": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "bottom": -10.46,
+        "core": 11.13,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/PowerPoleWall/Mesh/SM_PowerPoleWall_MK1.SM_PowerPoleWall_MK1",
+        "offset": [
+          0.0,
+          -0.03,
+          0.14
+        ],
+        "radius": 15.9,
+        "signature": {
+          "connection": [
+            116.5,
+            -141.1,
+            49.3
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/PipePumpMk2/Mesh/SM_PipePumpMk2_01.SM_PipePumpMk2_01",
+              3937,
+              4897
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/PowerPoleWall/Mesh/SM_PowerPoleWall_MK1.SM_PowerPoleWall_MK1",
+              821,
+              1152
+            ]
+          ]
+        },
+        "top": 12.08
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/CheatPowerSource/Build_CheatPowerSource.Build_CheatPowerSource_C": {
+      "PowerConnection": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -11.35,
+        "core": 17.12,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/PowerPoleWall/Mesh/SM_PowerPoleWall_MK3.SM_PowerPoleWall_MK3",
+        "offset": [
+          -0.01,
+          -0.0,
+          0.0
+        ],
+        "radius": 24.7,
+        "signature": {
+          "connection": [
+            0.0,
+            -0.0,
+            440.0
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/PowerPoleWall/Mesh/SM_PowerPoleWall_MK3.SM_PowerPoleWall_MK3",
+              1261,
+              1580
+            ],
+            [
+              "/Game/FactoryGame/World/Environment/Misc/Mesh/Cube.Cube",
+              24,
+              12
+            ]
+          ]
+        },
+        "top": 23.33
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/ConstructorMk1/Build_ConstructorMk1.Build_ConstructorMk1_C": {
+      "PowerInput": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -25.61,
+        "core": 17.78,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/ConstructorMk1/Mesh/ConstructorMk1_static.ConstructorMk1_static",
+        "offset": [
+          0.83,
+          2.13,
+          0.0
+        ],
+        "radius": 29.51,
+        "signature": {
+          "connection": [
+            210.0,
+            -470.0,
+            687.2
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/ConstructorMk1/Mesh/ConstructorMk1_static.ConstructorMk1_static",
+              22881,
+              21831
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/ConstructorMk1/Mesh/SM_VAT_Constructor_MK1.SM_VAT_Constructor_MK1",
+              13341,
+              15174
+            ]
+          ]
+        },
+        "top": 26.22
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/Converter/Build_Converter.Build_Converter_C": {
+      "PowerInput": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -26.11,
+        "core": 17.78,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/Converter/Mesh/SM_Converter_01.SM_Converter_01",
+        "offset": [
+          -0.31,
+          0.21,
+          0.0
+        ],
+        "radius": 29.51,
+        "signature": {
+          "connection": [
+            525.0,
+            -767.0,
+            508.0
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/Converter/Mesh/SM_Converter_01.SM_Converter_01",
+              41806,
+              40741
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/Converter/Mesh/SM_VAT_Converter.SM_VAT_Converter",
+              2020,
+              2504
+            ]
+          ]
+        },
+        "top": 25.72
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/DroneStation/Build_DroneStation.Build_DroneStation_C": {
+      "PowerConnection": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -31.54,
+        "core": 17.78,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/DroneStation/Mesh/SM_DroneStation_01.SM_DroneStation_01",
+        "offset": [
+          3.08,
+          1.68,
+          0.0
+        ],
+        "radius": 29.51,
+        "signature": {
+          "connection": [
+            973.8,
+            -848.8,
+            1378.2
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/DroneStation/Mesh/SM_DroneStation_01.SM_DroneStation_01",
+              22388,
+              19202
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/FactoryInputs/Mesh/SM_Input_01.SM_Input_01",
+              2732,
+              2492
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/FactoryInputs/Mesh/SM_Output_01.SM_Output_01",
+              2605,
+              2362
+            ]
+          ]
+        },
+        "top": 20.29
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/FoundryMk1/Build_FoundryMk1.Build_FoundryMk1_C": {
+      "PowerConnection": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -24.53,
+        "core": 17.78,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/FoundryMk1/Mesh/FoundryMk1_static.FoundryMk1_static",
+        "offset": [
+          1.14,
+          -1.99,
+          -0.0
+        ],
+        "radius": 29.51,
+        "signature": {
+          "connection": [
+            420.0,
+            -360.0,
+            555.0
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/FoundryMk1/Mesh/FoundryMk1_static.FoundryMk1_static",
+              23558,
+              22090
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/FoundryMk1/Mesh/SM_VAT_Foundry.SM_VAT_Foundry",
+              9523,
+              10422
+            ]
+          ]
+        },
+        "top": 27.31
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/FrackingSmasher/Build_FrackingSmasher.Build_FrackingSmasher_C": {
+      "FGPowerConnection1": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -33.75,
+        "core": 17.78,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/FrackingSmasher/Mesh/SM_Fracker_01.SM_Fracker_01",
+        "offset": [
+          0.0,
+          1.67,
+          0.0
+        ],
+        "radius": 29.51,
+        "signature": {
+          "connection": [
+            -0.0,
+            -405.7,
+            1153.4
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/FrackingSmasher/Mesh/SM_Fracker_01.SM_Fracker_01",
+              24134,
+              26303
+            ]
+          ]
+        },
+        "top": 18.09
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/GeneratorBiomass/Build_GeneratorBiomass_Automated.Build_GeneratorBiomass_Automated_C": {
+      "PowerConnection": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -28.72,
+        "core": 17.78,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/GeneratorBiomass/Mesh/GeneratorBiomass_static.GeneratorBiomass_static",
+        "offset": [
+          -2.14,
+          -3.6,
+          0.0
+        ],
+        "radius": 29.51,
+        "signature": {
+          "connection": [
+            156.9,
+            315.8,
+            640.0
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/GeneratorBiomass/Mesh/GeneratorBiomass_static.GeneratorBiomass_static",
+              34919,
+              34738
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/GeneratorBiomass/Mesh/SM_VA_GeneratorBiomass.SM_VA_GeneratorBiomass",
+              2816,
+              3652
+            ]
+          ]
+        },
+        "top": 23.11
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/GeneratorBiomass/Build_GeneratorIntegratedBiomass.Build_GeneratorIntegratedBiomass_C": {
+      "PowerConnection": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -37.85,
+        "core": 17.76,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/TradingPost/Mesh/HubBiomass_static_LOD0.HubBiomass_static_LOD0",
+        "offset": [
+          5.08,
+          -7.07,
+          -0.0
+        ],
+        "radius": 29.02,
+        "signature": {
+          "connection": [
+            -34.8,
+            -75.5,
+            375.0
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/GeneratorBiomass/Mesh/SM_VA_GeneratorBiomass.SM_VA_GeneratorBiomass",
+              2816,
+              3652
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/TradingPost/Mesh/HubBiomass_static_LOD0.HubBiomass_static_LOD0",
+              30361,
+              23519
+            ]
+          ]
+        },
+        "top": 13.98
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/GeneratorCoal/Build_GeneratorCoal.Build_GeneratorCoal_C": {
+      "PowerConnection": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -26.24,
+        "core": 17.76,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/GeneratorCoal/Mesh/GeneratorCoal_static.GeneratorCoal_static",
+        "offset": [
+          -0.42,
+          -6.38,
+          0.0
+        ],
+        "radius": 29.02,
+        "signature": {
+          "connection": [
+            -267.1,
+            -1312.2,
+            938.4
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/GeneratorCoal/Mesh/GeneratorCoal_static.GeneratorCoal_static",
+              46761,
+              41429
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/GeneratorCoal/Mesh/SM_VAT_GeneratorCoal.SM_VAT_GeneratorCoal",
+              1281,
+              768
+            ]
+          ]
+        },
+        "top": 25.6
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/GeneratorFuel/Build_GeneratorFuel.Build_GeneratorFuel_C": {
+      "PowerConnection": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -28.95,
+        "core": 17.78,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/GeneratorFuel/Mesh/SM_GeneratorFuel_01.SM_GeneratorFuel_01",
+        "offset": [
+          -0.34,
+          -0.07,
+          0.0
+        ],
+        "radius": 29.51,
+        "signature": {
+          "connection": [
+            -0.1,
+            538.4,
+            919.7
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/GeneratorFuel/Mesh/SM_GeneratorFuel_01.SM_GeneratorFuel_01",
+              43570,
+              42307
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/GeneratorFuel/Mesh/SM_VAT_FuelGenerator.SM_VAT_FuelGenerator",
+              37740,
+              45764
+            ]
+          ]
+        },
+        "top": 22.88
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/GeneratorGeoThermal/Build_GeneratorGeoThermal.Build_GeneratorGeoThermal_C": {
+      "PowerConnection": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -28.55,
+        "core": 17.78,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/GeneratorGeoThermal/Mesh/SM_GeneratorGeoThermal_01.SM_GeneratorGeoThermal_01",
+        "offset": [
+          -0.1,
+          -0.46,
+          0.0
+        ],
+        "radius": 29.51,
+        "signature": {
+          "connection": [
+            -270.0,
+            485.0,
+            1040.0
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/-Shared/SharedParts/Mesh/FactoryLeg.FactoryLeg",
+              40,
+              32
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/GeneratorGeoThermal/Mesh/SM_GeneratorGeoThermal_01.SM_GeneratorGeoThermal_01",
+              37596,
+              35254
+            ]
+          ]
+        },
+        "top": 23.28
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/GeneratorNuclear/Build_GeneratorNuclear.Build_GeneratorNuclear_C": {
+      "PowerConnection": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -28.59,
+        "core": 17.74,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/GeneratorNuclear/Mesh/SM_Generator_Nuclear.SM_Generator_Nuclear",
+        "offset": [
+          -1.25,
+          -0.25,
+          0.0
+        ],
+        "radius": 29.49,
+        "signature": {
+          "connection": [
+            -662.3,
+            -1899.1,
+            888.7
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/GeneratorNuclear/Mesh/SM_Generator_Nuclear.SM_Generator_Nuclear",
+              77135,
+              67471
+            ]
+          ]
+        },
+        "top": 23.24
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/HadronCollider/Build_HadronCollider.Build_HadronCollider_C": {
+      "PowerInput": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -25.91,
+        "core": 17.78,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/HadronCollider/Mesh/SM_HadronCollider_01.SM_HadronCollider_01",
+        "offset": [
+          -0.02,
+          -0.05,
+          0.0
+        ],
+        "radius": 29.51,
+        "signature": {
+          "connection": [
+            1833.0,
+            -874.9,
+            616.6
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/FactoryInputs/Mesh/SM_Input_01.SM_Input_01",
+              2732,
+              2492
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/FactoryInputs/Mesh/SM_Output_01.SM_Output_01",
+              2605,
+              2362
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/FactoryInputs/Mesh/SM_Pipe_InPut_01.SM_Pipe_InPut_01",
+              3085,
+              2898
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/HadronCollider/Mesh/SM_HC_Spool_01.SM_HC_Spool_01",
+              640,
+              664
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/HadronCollider/Mesh/SM_HC_Spool_02.SM_HC_Spool_02",
+              444,
+              412
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/HadronCollider/Mesh/SM_HadronCollider_01.SM_HadronCollider_01",
+              65577,
+              73298
+            ]
+          ]
+        },
+        "top": 25.92
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/JumpPad/Build_JumpPad.Build_JumpPad_C": {
+      "FGPowerConnection": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -34.7,
+        "core": 17.92,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/JumpPad/Mesh/JumpPad_static.JumpPad_static",
+        "offset": [
+          1.73,
+          -7.69,
+          -0.0
+        ],
+        "radius": 29.66,
+        "signature": {
+          "connection": [
+            -30.0,
+            -200.0,
+            400.0
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/JumpPad/Mesh/JumpPad_static.JumpPad_static",
+              17084,
+              9980
+            ]
+          ]
+        },
+        "top": 29.78
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/JumpPad/Build_JumpPadAdjustable.Build_JumpPadAdjustable_C": {
+      "FGPowerConnection": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -26.14,
+        "core": 17.79,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/JumpPad/Mesh/SM_JumpPad_01.SM_JumpPad_01",
+        "offset": [
+          0.49,
+          -0.25,
+          -0.0
+        ],
+        "radius": 29.51,
+        "signature": {
+          "connection": [
+            -212.0,
+            -210.0,
+            155.0
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/JumpPad/Mesh/SM_JumpPad_01.SM_JumpPad_01",
+              4629,
+              5059
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/JumpPad/Mesh/SM_JumpPad_Top_01.SM_JumpPad_Top_01",
+              1296,
+              1318
+            ]
+          ]
+        },
+        "top": 25.69
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/JumpPad/Build_JumpPadTilted.Build_JumpPadTilted_C": {
+      "FGPowerConnection": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -34.7,
+        "core": 17.92,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/JumpPad/Mesh/JumpPad_static.JumpPad_static",
+        "offset": [
+          1.73,
+          -7.69,
+          -0.0
+        ],
+        "radius": 29.66,
+        "signature": {
+          "connection": [
+            -30.0,
+            -200.0,
+            400.0
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/JumpPad/Mesh/JumpPad_static.JumpPad_static",
+              17084,
+              9980
+            ]
+          ]
+        },
+        "top": 29.78
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/LandingPad/Build_LandingPad.Build_LandingPad_C": {
+      "FGPowerConnection": {
+        "axis": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "bottom": -9.95,
+        "core": 16.09,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/LandingPad/Mesh/LandingPad_static.LandingPad_static",
+        "offset": [
+          0.0,
+          -0.27,
+          1.2
+        ],
+        "radius": 20.26,
+        "signature": {
+          "connection": [
+            459.0,
+            525.0,
+            464.0
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/LandingPad/Mesh/LandingPad_Jelly.LandingPad_Jelly",
+              366,
+              600
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/LandingPad/Mesh/LandingPad_static.LandingPad_static",
+              22554,
+              8334
+            ]
+          ]
+        },
+        "top": 11.88
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/ManufacturerMk1/Build_ManufacturerMk1.Build_ManufacturerMk1_C": {
+      "PowerConnection": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -29.03,
+        "core": 17.74,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/ManufacturerMk1/Mesh/SM_Manufacturer.SM_Manufacturer",
+        "offset": [
+          -2.78,
+          0.27,
+          0.0
+        ],
+        "radius": 29.49,
+        "signature": {
+          "connection": [
+            840.0,
+            495.2,
+            1014.6
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/ManufacturerMk1/Mesh/SM_Manufacturer.SM_Manufacturer",
+              78608,
+              55245
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/ManufacturerMk1/Mesh/SM_VAT_Manufacturer.SM_VAT_Manufacturer",
+              28638,
+              32718
+            ]
+          ]
+        },
+        "top": 22.8
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/MinerMK1/Build_MinerMk1.Build_MinerMk1_C": {
+      "PowerInput": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -27.24,
+        "core": 17.78,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/MinerMK1/Mesh/MinerMk1_static.MinerMk1_static",
+        "offset": [
+          10.56,
+          4.09,
+          0.0
+        ],
+        "radius": 29.51,
+        "signature": {
+          "connection": [
+            126.2,
+            15.8,
+            1799.8
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/MinerMK1/Mesh/MinerMk1_static.MinerMk1_static",
+              43859,
+              38540
+            ]
+          ]
+        },
+        "top": 24.59
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/MinerMk2/Build_MinerMk2.Build_MinerMk2_C": {
+      "PowerInput": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -25.91,
+        "core": 17.78,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/MinerMk2/Mesh/MinerMk2_static.MinerMk2_static",
+        "offset": [
+          -2.38,
+          -0.95,
+          0.0
+        ],
+        "radius": 29.51,
+        "signature": {
+          "connection": [
+            139.1,
+            20.8,
+            1798.5
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/MinerMk2/Mesh/MinerMk2_static.MinerMk2_static",
+              45449,
+              39974
+            ]
+          ]
+        },
+        "top": 25.92
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/MinerMk3/Build_MinerMk3.Build_MinerMk3_C": {
+      "PowerInput": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -25.91,
+        "core": 17.78,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/MinerMk2/Mesh/MinerMk2_static.MinerMk2_static",
+        "offset": [
+          -2.38,
+          -0.95,
+          0.0
+        ],
+        "radius": 29.51,
+        "signature": {
+          "connection": [
+            139.1,
+            20.8,
+            1798.5
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/MinerMk2/Mesh/MinerMk2_static.MinerMk2_static",
+              45449,
+              39974
+            ]
+          ]
+        },
+        "top": 25.92
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/OilPump/Build_OilPump.Build_OilPump_C": {
+      "PowerInput": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -28.55,
+        "core": 17.76,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/OilPump/Mesh/OilPump_static.OilPump_static",
+        "offset": [
+          0.63,
+          5.39,
+          0.0
+        ],
+        "radius": 29.02,
+        "signature": {
+          "connection": [
+            101.6,
+            -415.1,
+            1655.1
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/OilPump/Mesh/OilPump_static.OilPump_static",
+              36370,
+              32940
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/OilPump/Mesh/SM_VAT_OilPump.SM_VAT_OilPump",
+              1050,
+              1244
+            ]
+          ]
+        },
+        "top": 23.28
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/OilRefinery/Build_OilRefinery.Build_OilRefinery_C": {
+      "PowerConnection": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -27.63,
+        "core": 17.78,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/OilRefinery/Mesh/SM_OilRefinery_01.SM_OilRefinery_01",
+        "offset": [
+          -0.0,
+          -6.13,
+          0.0
+        ],
+        "radius": 29.51,
+        "signature": {
+          "connection": [
+            -0.0,
+            -969.0,
+            1872.5
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/OilRefinery/Mesh/SM_OilRefinery_01.SM_OilRefinery_01",
+              58786,
+              55180
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/OilRefinery/Mesh/SM_Refinery_VAT_01.SM_Refinery_VAT_01",
+              1376,
+              1956
+            ]
+          ]
+        },
+        "top": 24.2
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/Packager/Build_Packager.Build_Packager_C": {
+      "PowerConnection": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -27.17,
+        "core": 17.78,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/Packager/Mesh/SM_Packager_01.SM_Packager_01",
+        "offset": [
+          -0.24,
+          -0.59,
+          0.0
+        ],
+        "radius": 29.51,
+        "signature": {
+          "connection": [
+            219.0,
+            -48.0,
+            1074.0
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/Packager/Mesh/SM_Packager_01.SM_Packager_01",
+              26004,
+              25091
+            ]
+          ]
+        },
+        "top": 24.66
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/PipeHyperStart/Build_PipeHyperStart.Build_PipeHyperStart_C": {
+      "PowerInput": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -16.93,
+        "core": 10.02,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/PipeHyperStart/Mesh/SM_HyperTubeStart_01.SM_HyperTubeStart_01",
+        "offset": [
+          -0.47,
+          0.03,
+          0.0
+        ],
+        "radius": 16.62,
+        "signature": {
+          "connection": [
+            -179.5,
+            -0.3,
+            248.7
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/PipeHyperStart/Mesh/SM_HyperTubeStart_01.SM_HyperTubeStart_01",
+              4382,
+              4174
+            ]
+          ]
+        },
+        "top": 12.93
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/PipePump/Build_PipelinePump.Build_PipelinePump_C": {
+      "PowerInput": {
+        "axis": [
+          0.0,
+          0.3827,
+          0.9239
+        ],
+        "bottom": -9.76,
+        "core": 11.13,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/PowerPoleWall/Mesh/SM_PowerPoleWall_MK1.SM_PowerPoleWall_MK1",
+        "offset": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "radius": 16.02,
+        "signature": {
+          "connection": [
+            177.8,
+            45.1,
+            111.5
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/PipePump/Mesh/SM_PipePump.SM_PipePump",
+              5546,
+              7284
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/PowerPoleWall/Mesh/SM_PowerPoleWall_MK1.SM_PowerPoleWall_MK1",
+              821,
+              1152
+            ]
+          ]
+        },
+        "top": 12.78
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/PipePumpMk2/Build_PipelinePumpMK2.Build_PipelinePumpMk2_C": {
+      "PowerInput": {
+        "axis": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "bottom": -10.46,
+        "core": 11.13,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/PowerPoleWall/Mesh/SM_PowerPoleWall_MK1.SM_PowerPoleWall_MK1",
+        "offset": [
+          0.0,
+          -0.03,
+          0.14
+        ],
+        "radius": 15.9,
+        "signature": {
+          "connection": [
+            116.5,
+            -141.1,
+            49.3
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/PipePumpMk2/Mesh/SM_PipePumpMk2_01.SM_PipePumpMk2_01",
+              3937,
+              4897
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/PowerPoleWall/Mesh/SM_PowerPoleWall_MK1.SM_PowerPoleWall_MK1",
+              821,
+              1152
+            ]
+          ]
+        },
+        "top": 12.08
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/Portal/Build_Portal.Build_Portal_C": {
+      "PowerInput": {
+        "axis": [
+          -1.0,
+          0.0,
+          0.0
+        ],
+        "bottom": -16.86,
+        "core": 17.11,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/Portal/Mesh/SM_Portal_A_01.SM_Portal_A_01",
+        "offset": [
+          0.0,
+          -0.0,
+          -0.23
+        ],
+        "radius": 24.69,
+        "signature": {
+          "connection": [
+            -157.0,
+            -0.0,
+            983.0
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/Portal/Mesh/SM_Portal_A_01.SM_Portal_A_01",
+              20811,
+              19639
+            ]
+          ]
+        },
+        "top": 23.79
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/Portal/Build_PortalSatellite.Build_PortalSatellite_C": {
+      "PowerInput": {
+        "axis": [
+          -1.0,
+          0.0,
+          0.0
+        ],
+        "bottom": -16.86,
+        "core": 17.11,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/Portal/Mesh/SM_Portal_B_01.SM_Portal_B_01",
+        "offset": [
+          0.0,
+          -0.0,
+          2.48
+        ],
+        "radius": 24.69,
+        "signature": {
+          "connection": [
+            -157.0,
+            -0.0,
+            828.3
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/Portal/Mesh/SM_Portal_B_01.SM_Portal_B_01",
+              15227,
+              14595
+            ]
+          ]
+        },
+        "top": 23.79
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/PowerStorage/Build_PowerStorageMk1.Build_PowerStorageMk1_C": {
+      "PowerConnection": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -26.12,
+        "core": 17.78,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/PowerStorage/Mesh/SM_PowerStorage_01.SM_PowerStorage_01",
+        "offset": [
+          0.04,
+          0.04,
+          0.0
+        ],
+        "radius": 29.51,
+        "signature": {
+          "connection": [
+            -0.0,
+            -321.5,
+            1150.0
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/PowerStorage/Mesh/SM_PowerStorage_01.SM_PowerStorage_01",
+              11629,
+              11995
+            ]
+          ]
+        },
+        "top": 25.72
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/QuantumEncoder/Build_QuantumEncoder.Build_QuantumEncoder_C": {
+      "PowerInput": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -28.6,
+        "core": 17.78,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/QuantumEncoder/Mesh/SM_QuantumEncoder_01.SM_QuantumEncoder_01",
+        "offset": [
+          -0.09,
+          3.04,
+          0.0
+        ],
+        "radius": 29.51,
+        "signature": {
+          "connection": [
+            857.5,
+            -2029.7,
+            479.2
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/QuantumEncoder/Mesh/SM_QuantumEncoder_01.SM_QuantumEncoder_01",
+              59313,
+              54830
+            ]
+          ]
+        },
+        "top": 23.23
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/RadarTower/Build_RadarTower.Build_RadarTower_C": {
+      "FGPowerConnection": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -32.88,
+        "core": 17.74,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/RadarTower/Mesh/RadarTower_static.RadarTower_static",
+        "offset": [
+          -0.69,
+          -7.73,
+          0.0
+        ],
+        "radius": 29.49,
+        "signature": {
+          "connection": [
+            114.9,
+            -346.9,
+            1730.3
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/RadarTower/Mesh/RadarTower_static.RadarTower_static",
+              59167,
+              39842
+            ]
+          ]
+        },
+        "top": 18.95
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/ResourceSink/Build_ResourceSink.Build_ResourceSink_C": {
+      "FGPowerConnection": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -27.8,
+        "core": 17.78,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/ResourceSink/Mesh/SM_ResourceSink.SM_ResourceSink",
+        "offset": [
+          1.57,
+          2.37,
+          0.0
+        ],
+        "radius": 29.51,
+        "signature": {
+          "connection": [
+            -361.1,
+            -320.7,
+            898.5
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/ResourceSink/Mesh/SM_ResourceSink.SM_ResourceSink",
+              33924,
+              30704
+            ]
+          ]
+        },
+        "top": 24.03
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/SmelterMk1/Build_SmelterMk1.Build_SmelterMk1_C": {
+      "PowerConnection": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -15.74,
+        "core": 17.78,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/SmelterMk1/Mesh/SmelterMk1_static.SmelterMk1_static",
+        "offset": [
+          2.57,
+          3.45,
+          0.0
+        ],
+        "radius": 29.51,
+        "signature": {
+          "connection": [
+            220.0,
+            -310.0,
+            480.0
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/SmelterMk1/Mesh/SM_VAT_Smelter_01.SM_VAT_Smelter_01",
+              8304,
+              9418
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/SmelterMk1/Mesh/SmelterMk1_static.SmelterMk1_static",
+              12733,
+              11559
+            ]
+          ]
+        },
+        "top": 36.09
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/Train/Station/Build_TrainStation.Build_TrainStation_C": {
+      "PowerConnection": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -16.94,
+        "core": 17.74,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/Train/Station/Mesh/SM_Trainstation_01.SM_Trainstation_01",
+        "offset": [
+          -1.19,
+          1.71,
+          0.0
+        ],
+        "radius": 29.49,
+        "signature": {
+          "connection": [
+            -25.9,
+            -1662.8,
+            1880.2
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/Train/Station/Mesh/SM_Trainstation_01.SM_Trainstation_01",
+              36568,
+              27660
+            ]
+          ]
+        },
+        "top": 34.89
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/TruckStation/Build_FluidTruckStation.Build_FluidTruckStation_C": {
+      "PowerInput": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -24.11,
+        "core": 17.78,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/TruckStation/Mesh/SM_TruckStation_Fluid_01.SM_TruckStation_Fluid_01",
+        "offset": [
+          15.95,
+          0.52,
+          0.0
+        ],
+        "radius": 29.51,
+        "signature": {
+          "connection": [
+            -251.2,
+            -993.5,
+            1068.5
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/TruckStation/Mesh/SM_TruckStation_Fluid_01.SM_TruckStation_Fluid_01",
+              43663,
+              43992
+            ]
+          ]
+        },
+        "top": 27.72
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/TruckStation/Build_TruckStation.Build_TruckStation_C": {
+      "PowerInput": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bottom": -24.11,
+        "core": 17.78,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/TruckStation/Mesh/Truckstation_static.TruckStation_static",
+        "offset": [
+          15.95,
+          0.52,
+          0.0
+        ],
+        "radius": 29.51,
+        "signature": {
+          "connection": [
+            -251.2,
+            -993.5,
+            1068.5
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/TruckStation/Mesh/Truckstation_static.TruckStation_static",
+              30774,
+              27553
+            ]
+          ]
+        },
+        "top": 27.72
+      }
+    },
+    "/Game/FactoryGame/Buildable/Factory/WaterPump/Build_WaterPump.Build_WaterPump_C": {
+      "PowerConnection": {
+        "axis": [
+          -1.0,
+          0.0,
+          0.0
+        ],
+        "bottom": -25.91,
+        "core": 17.79,
+        "mesh": "/Game/FactoryGame/Buildable/Factory/WaterPump/Mesh/SM_WaterPump_01.SM_WaterPump_01",
+        "offset": [
+          0.0,
+          0.33,
+          -0.15
+        ],
+        "radius": 29.51,
+        "signature": {
+          "connection": [
+            -593.0,
+            322.0,
+            1047.0
+          ],
+          "meshes": [
+            [
+              "/Game/FactoryGame/Buildable/Factory/-Shared/ProductionIndicator/Mesh/SM_ProductionLight_01.SM_ProductionLight_01",
+              624,
+              772
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/WaterPump/Mesh/SM_VA_WaterPump.SM_VA_WaterPump",
+              4703,
+              2437
+            ],
+            [
+              "/Game/FactoryGame/Buildable/Factory/WaterPump/Mesh/SM_WaterPump_01.SM_WaterPump_01",
+              27644,
+              27003
+            ]
+          ]
+        },
+        "top": 25.92
+      }
+    }
+  }
+}

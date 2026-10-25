@@ -1,7 +1,7 @@
 """
 Auto-Connecting Power Rails — the buildable assets: blueprints, descriptors, recipes, schematic.
 
-Creates, for each of the four buildables (Rail, Junction, Outlet, Cap):
+Creates, for each of the seven buildables (Rail, Junction, Outlet, Cap, Wireless Outlet Mk.1–3):
 
     /AutoConnectingPowerRails/Buildables/Build_<Stem>    parented to the C++ buildable class
     /AutoConnectingPowerRails/Buildables/Holo_<Stem>     parented to the C++ hologram class
@@ -9,7 +9,7 @@ Creates, for each of the four buildables (Rail, Junction, Outlet, Cap):
     /AutoConnectingPowerRails/Recipes/Recipe_<Stem>      the §13 recipe, made by the Build Gun
 
 and /AutoConnectingPowerRails/Schematics/Schematic_PowerRails: the AWESOME Shop package that
-unlocks all four, at §13's coupon price, visible after Basic Steel Production. Meshes are bound
+unlocks all seven, at §13's coupon price, visible after Basic Steel Production. Meshes are bound
 by acpr_bind_meshes.py and icons by acpr_icons.py; this script leaves both alone.
 
 It reads vanilla assets from the asset registry (the ingredient descriptors by their display
@@ -23,7 +23,7 @@ hologram's mBuildModeDiagonal / mBuildModeFreeForm, without which AFGBeamHologra
 between its vertical and free-form placement paths. Both are copied here, the descriptors
 from the vanilla hologram itself rather than from a path written down.
 
-Writes a log to <project>/Saved/ACPR/ACPR_buildables_log.txt as well as the Output Log.
+Writes a log to Scripts/Temp/acpr_buildables_log.txt as well as the Output Log.
 
 Re-runnable: an asset that exists is kept and its properties written again; nothing is
 duplicated from anything. Every write is read back from a freshly resolved class default,
@@ -51,6 +51,7 @@ Property names, from the FactoryGame headers:
     UFGSchematicPurchasedDependency::mSchematics FGSchematicPurchasedDependency.h
     AFGBuildableBeam::mSize/mDefaultLength/mMaxLength/mLengthPerCost  FGBuildableBeam.h
     AFGBeamHologram::mBuildModeDiagonal/mBuildModeFreeForm             FGBeamHologram.h
+    AACPRWirelessOutlet::mRange                                        ACPRWirelessOutlet.h
 """
 
 import os
@@ -67,7 +68,12 @@ SCHEMATIC = SCHEMATIC_DIR + "/" + SCHEMATIC_NAME
 
 # stem, C++ buildable, C++ hologram, display name, description, ingredients by DISPLAY name
 # (the only stable key: "Steel Beam" is Desc_SteelPlate), whether the build-gun readout is
-# a length (B.2: only the Rail is zoopable).
+# a length (B.2: only the Rail is zoopable), and — optionally — extra (property, value) writes
+# onto the Build_ blueprint, which is how the three Wireless Outlet tiers differ (§16.6: one
+# C++ class, one range each).
+WIRELESS_DESCRIPTION = ("Links every unwired machine within {0} m to the Power Rail network without a "
+                        "cable — the nearest outlet takes each machine, and a wall, foundation or other "
+                        "building on the line blocks the link. No Power Line sockets.")
 PARTS = (
     ("PowerRail", "ACPRRail", "ACPRRailHologram",
      "Power Rail",
@@ -88,11 +94,20 @@ PARTS = (
      "Insulated Terminal Cap",
      "Blocks a Rail terminal from snapping and blueprint auto-connection.",
      (("Concrete", 1), ), False),
+    ("PowerRailWirelessOutletMk1", "ACPRWirelessOutlet", "ACPRWirelessOutletHologram",
+     "Power Rail Wireless Outlet Mk.1", WIRELESS_DESCRIPTION.format(8),
+     (("Quickwire", 4), ("Iron Rod", 1)), False, (("mRange", 800.0), )),
+    ("PowerRailWirelessOutletMk2", "ACPRWirelessOutlet", "ACPRWirelessOutletHologram",
+     "Power Rail Wireless Outlet Mk.2", WIRELESS_DESCRIPTION.format(16),
+     (("Quickwire", 8), ("Iron Rod", 1)), False, (("mRange", 1600.0), )),
+    ("PowerRailWirelessOutletMk3", "ACPRWirelessOutlet", "ACPRWirelessOutletHologram",
+     "Power Rail Wireless Outlet Mk.3", WIRELESS_DESCRIPTION.format(32),
+     (("Quickwire", 16), ("Iron Rod", 1)), False, (("mRange", 3200.0), )),
 )
 
 SCHEMATIC_DISPLAY = "Power Rails"
-SCHEMATIC_DESCRIPTION = ("Unlocks the Power Rail, Power Rail Junction, Power Rail Outlet and "
-                         "Insulated Terminal Cap.")
+SCHEMATIC_DESCRIPTION = ("Unlocks the Power Rail, Power Rail Junction, Power Rail Outlet, Insulated "
+                         "Terminal Cap and the three Power Rail Wireless Outlet tiers.")
 SCHEMATIC_TIER = 1
 COUPON_COST = 4
 COUPON_DESC = "Desc_ResourceSinkCoupon"
@@ -113,7 +128,7 @@ VANILLA_BEAM = "Build_Beam_Painted"      # the beam whose hologram carries the b
 RAIL_BEAM = (("mSize", 100.0), ("mDefaultLength", 400.0), ("mMaxLength", 4000.0), ("mLengthPerCost", 1000.0))
 RAIL_STEM = "PowerRail"
 
-LOG_NAME = "ACPR_buildables_log.txt"
+LOG_NAME = "acpr_buildables_log.txt"
 
 _tools = unreal.AssetToolsHelpers.get_asset_tools()
 _checks = []
@@ -125,12 +140,17 @@ def _log(message):
     unreal.log("[ACPR-BUILDABLES] " + message)
 
 
+def _temp_dir(*parts):
+    """<mod>/Scripts/Temp — where every script writes its log and scratch output; git ignores it."""
+    directory = os.path.join(os.path.abspath(str(unreal.Paths.project_dir())), "Mods", "GameFeatures", MOD,
+                             "Scripts", "Temp", *parts)
+    os.makedirs(directory, exist_ok=True)
+    return directory
+
+
 def _write_log():
     try:
-        directory = os.path.abspath(os.path.join(str(unreal.Paths.project_saved_dir()), "ACPR"))
-        if not os.path.isdir(directory):
-            os.makedirs(directory)
-        path = os.path.join(directory, LOG_NAME)
+        path = os.path.join(_temp_dir(), LOG_NAME)
         with open(path, "w", encoding="utf-8") as handle:
             handle.write("Auto-Connecting Power Rails — buildable assets\n")
             handle.write("=" * 60 + "\n\n")
@@ -363,7 +383,8 @@ def _write_and_verify(path, writes, what):
 
 
 def _buildable(part, vanilla, build_modes):
-    stem, cpp_build, cpp_holo, display, description, ingredients, zooping = part
+    stem, cpp_build, cpp_holo, display, description, ingredients, zooping = part[:7]
+    extra_writes = part[7] if len(part) > 7 else ()
     by_name, by_display = vanilla
     _log("")
     _log("--- " + display + " ---")
@@ -395,6 +416,7 @@ def _buildable(part, vanilla, build_modes):
               ("mDescription", unreal.Text(description))]
     if stem == RAIL_STEM:
         writes.extend(RAIL_BEAM)
+    writes.extend(extra_writes)
     _write_and_verify(build_path, writes, "Build_" + stem)
 
     # The Rail's hologram: the vanilla beam's two build-mode descriptors (B.2).

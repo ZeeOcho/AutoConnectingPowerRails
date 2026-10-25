@@ -68,6 +68,16 @@ public:
 	 */
 	virtual void PostHologramPlacement( const FHitResult& hitResult, bool callForChildren ) override;
 
+	/**
+	 * Whether the last TrySnapToActor found a §15 target (a Rail body or an open terminal). The
+	 * return value cannot say so: a refusal returns Super's answer to keep the hologram visible.
+	 * Read by FACPRWireAutoOutlet to decide whether a cable's aim is a Rail aim.
+	 */
+	bool HasTarget() const { return mHasTarget; }
+
+	/** The Guidelines (Ctrl) state this hologram mounts with; a cable's child takes it from the cable. */
+	bool SnapsToGuideLines() const { return mSnapToGuideLines; }
+
 protected:
 	virtual void CheckValidFloor() override;
 	virtual void CheckValidPlacement() override;

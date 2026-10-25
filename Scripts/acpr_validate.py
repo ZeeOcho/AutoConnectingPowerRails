@@ -1,7 +1,7 @@
 """
 Auto-Connecting Power Rails — §13's unlock and §14's pre-cook validation, in one pass.
 
-Audits every asset this mod owns (the four buildables' Build_/Holo_/Desc_/Recipe_
+Audits every asset this mod owns (the seven buildables' Build_/Holo_/Desc_/Recipe_
 assets under /AutoConnectingPowerRails/Buildables and /Recipes, and
 Schematic_PowerRails) against the spec, and fixes the handful of things the spec
 states exactly. It reads vanilla assets from the asset registry (the FICSIT Coupon,
@@ -24,7 +24,10 @@ WHAT IT DOES
        and save_asset writes nothing when the package is clean — so a script that
        re-reads what it just set in memory always passes. Every write here is
        followed by a forced save and a re-read after the asset has been reloaded.
-    4. WRITES the whole pass to <project>/Saved/ACPR/ACPR_validate_log.txt as well.
+    4. CHECKS the link ends' socket table (Config/ACPR_Sockets.json): present, well-formed,
+       and — when the project's game version is not the one it was measured on — whether
+       any socket or mesh it depends on changed (a WARN, not a FAIL).
+    5. WRITES the whole pass to Scripts/Temp/acpr_validate_log.txt as well.
 
 RULES THE CHECKS FOLLOW
 
@@ -45,7 +48,7 @@ RULES THE CHECKS FOLLOW
       abstract, so new_object on them fails. A concrete subclass of each is taken
       from a vanilla schematic that already uses one — for the unlock, preferring a
       class whose own defaults are empty, and a freshly created one is SET to our
-      four recipes rather than appended to, so it cannot inherit vanilla recipes
+      own recipes rather than appended to, so it cannot inherit vanilla recipes
       from the class it was borrowed from.
     * UFGSchematicNotPurchasedDependency, the "inverted version", DERIVES from
       UFGSchematicPurchasedDependency (FGSchematicPurchasedDependency.h:51), so a
@@ -75,7 +78,9 @@ sets a property to nothing and reports success:
     AFGBuildableBeam::mSize/mDefaultLength/mMaxLength/mLengthPerCost  FGBuildableBeam.h:62-86
 """
 
+import json
 import os
+import runpy
 import traceback
 
 import unreal
@@ -100,7 +105,16 @@ PARTS = {
     "Junction": ("Build_PowerRailJunction", "Holo_PowerRailJunction", "Desc_PowerRailJunction", "Recipe_PowerRailJunction"),
     "Outlet": ("Build_PowerRailOutlet", "Holo_PowerRailOutlet", "Desc_PowerRailOutlet", "Recipe_PowerRailOutlet"),
     "Cap": ("Build_PowerRailCap", "Holo_PowerRailCap", "Desc_PowerRailCap", "Recipe_PowerRailCap"),
+    "WirelessMk1": ("Build_PowerRailWirelessOutletMk1", "Holo_PowerRailWirelessOutletMk1",
+                    "Desc_PowerRailWirelessOutletMk1", "Recipe_PowerRailWirelessOutletMk1"),
+    "WirelessMk2": ("Build_PowerRailWirelessOutletMk2", "Holo_PowerRailWirelessOutletMk2",
+                    "Desc_PowerRailWirelessOutletMk2", "Recipe_PowerRailWirelessOutletMk2"),
+    "WirelessMk3": ("Build_PowerRailWirelessOutletMk3", "Holo_PowerRailWirelessOutletMk3",
+                    "Desc_PowerRailWirelessOutletMk3", "Recipe_PowerRailWirelessOutletMk3"),
 }
+
+# §16.6: each tier's range in uu, authored on its Build_ blueprint by acpr_buildables.py.
+WIRELESS_RANGES = {"WirelessMk1": 800.0, "WirelessMk2": 1600.0, "WirelessMk3": 3200.0}
 
 # §13's recipes, by the item's DISPLAY name — the only key that is stable. The
 # game's internal names do not always match ("Steel Beam" is Desc_SteelPlate).
@@ -109,6 +123,9 @@ RECIPE_INGREDIENTS = {
     "Junction": {"Steel Beam": 1, "Cable": 1},
     "Outlet": {"Wire": 4, "Iron Rod": 1},
     "Cap": {"Concrete": 1},
+    "WirelessMk1": {"Quickwire": 4, "Iron Rod": 1},
+    "WirelessMk2": {"Quickwire": 8, "Iron Rod": 1},
+    "WirelessMk3": {"Quickwire": 16, "Iron Rod": 1},
 }
 
 # §13: "at a baseline 4 FICSIT Coupons", "visible after Basic Steel Production".
@@ -130,24 +147,32 @@ STRINGS = {
     "Cap": ("Insulated Terminal Cap",
             "Blocks a Rail terminal from snapping and blueprint auto-connection."),
 }
+_WIRELESS_DESCRIPTION = ("Links every unwired machine within {0} m to the Power Rail network without a "
+                         "cable — the nearest outlet takes each machine, and a wall, foundation or other "
+                         "building on the line blocks the link. No Power Line sockets.")
+STRINGS["WirelessMk1"] = ("Power Rail Wireless Outlet Mk.1", _WIRELESS_DESCRIPTION.format(8))
+STRINGS["WirelessMk2"] = ("Power Rail Wireless Outlet Mk.2", _WIRELESS_DESCRIPTION.format(16))
+STRINGS["WirelessMk3"] = ("Power Rail Wireless Outlet Mk.3", _WIRELESS_DESCRIPTION.format(32))
 
 SCHEMATIC_STRINGS = ("Power Rails",
-                     "Unlocks the Power Rail, Power Rail Junction, Power Rail Outlet and Insulated "
-                     "Terminal Cap.")
+                     "Unlocks the Power Rail, Power Rail Junction, Power Rail Outlet, Insulated "
+                     "Terminal Cap and the three Power Rail Wireless Outlet tiers.")
 
 # §8: "four Power Lines (mMaxNumConnectionLinks = 4)", authored on the buildable.
 OUTLET_POWER_LINES = 4
 
 # §14 / C.2: the Rail is the only zoopable one, and its readout must be metres.
-ZOOPING = {"Rail": True, "Junction": False, "Outlet": False, "Cap": False}
+ZOOPING = {"Rail": True, "Junction": False, "Outlet": False, "Cap": False,
+           "WirelessMk1": False, "WirelessMk2": False, "WirelessMk3": False}
 
 # §11 / §13 numbers the Rail's beam fields have to carry, uu.
 RAIL_BEAM = {"m_size": 100.0, "m_default_length": 400.0, "m_max_length": 4000.0, "m_length_per_cost": 1000.0}
 
-LOG_NAME = "ACPR_validate_log.txt"
+LOG_NAME = "acpr_validate_log.txt"
 
 _checks = []
 _changes = []
+_warnings = []
 _lines = []
 
 
@@ -171,12 +196,23 @@ def _info(label, detail=""):
     _log("INFO {0} {1}".format(label, detail))
 
 
+def _warn(label, detail=""):
+    """Something to act on that is not a failure: counted in the summary, never a FAIL."""
+    _warnings.append((label, detail))
+    _log("WARN {0} {1}".format(label, detail))
+
+
+def _temp_dir(*parts):
+    """<mod>/Scripts/Temp — where every script writes its log and scratch output; git ignores it."""
+    directory = os.path.join(os.path.abspath(str(unreal.Paths.project_dir())), "Mods", "GameFeatures", MOD,
+                             "Scripts", "Temp", *parts)
+    os.makedirs(directory, exist_ok=True)
+    return directory
+
+
 def _write_log():
     try:
-        directory = os.path.abspath(os.path.join(str(unreal.Paths.project_saved_dir()), "ACPR"))
-        if not os.path.isdir(directory):
-            os.makedirs(directory)
-        path = os.path.join(directory, LOG_NAME)
+        path = os.path.join(_temp_dir(), LOG_NAME)
         with open(path, "w", encoding="utf-8") as handle:
             handle.write("Auto-Connecting Power Rails — validation\n")
             handle.write("=" * 60 + "\n\n")
@@ -546,6 +582,39 @@ def audit_buildables():
             # Two are expected: the wire socket and §8.2's private mounting interface.
             _info("Outlet connection components", str(described))
 
+        if part in WIRELESS_RANGES:
+            # §16: no Power Line sockets — the budget is zero and the socket therefore hidden
+            # (ConfigureAsWireSocket) — and the tier's own range, which is the one value the
+            # three blueprints differ in.
+            lines = _get(cdo, "m_max_power_lines")
+            _check(part + " mMaxPowerLines = 0", lines == 0, str(lines))
+            rng = _get(cdo, "m_range")
+            _check("{0} mRange = {1:.0f}".format(part, WIRELESS_RANGES[part]),
+                   rng is not None and abs(float(rng) - WIRELESS_RANGES[part]) < 0.5, str(rng))
+            blockers = _get(cdo, "m_blocking_classes")
+            _info(part + " mBlockingClasses", str([_name_of(c) for c in (blockers or [])]))
+            # §16.5: the two line materials the outlet swaps between, and the Powered value
+            # that tells them apart, read back off the instances acpr_materials.py made.
+            for prop, want in (("m_link_material", 0.0), ("m_link_material_powered", 1.0)):
+                material = _get(cdo, prop)
+                try:
+                    for loader in ("get_asset", "try_load"):
+                        if hasattr(material, loader):
+                            material = getattr(material, loader)()
+                            break
+                except Exception:
+                    material = None
+                powered = None
+                if material is not None:
+                    try:
+                        powered = unreal.MaterialEditingLibrary.get_material_instance_scalar_parameter_value(
+                            material, "Powered")
+                    except Exception as e:
+                        powered = "<unreadable: {0}>".format(e)
+                _check("{0} {1} Powered = {2:.0f}".format(part, prop, want),
+                       isinstance(powered, float) and abs(powered - want) < 0.01,
+                       "{0} -> {1}".format(_name_of(material) if material is not None else "<missing>", powered))
+
 
 # ---------------------------------------------------------------------------
 # D — holograms: the tuned placement fields, reported so a lost edit shows
@@ -653,7 +722,7 @@ def audit_recipes(by_display):
 
 
 # ---------------------------------------------------------------------------
-# F — §13's unlock: one AWESOME Shop package for all four
+# F — §13's unlock: one AWESOME Shop package for every buildable
 # ---------------------------------------------------------------------------
 
 def audit_schematic(vanilla, schematics):
@@ -704,7 +773,7 @@ def audit_schematic(vanilla, schematics):
         _info("coupon descriptor", "NOT FOUND in the asset registry — cost left alone")
     _check("schematic mCost", cost_ok, str(cost_text))
 
-    # 3. Unlocks: one UFGUnlockRecipe holding all four recipes. The unlock objects
+    # 3. Unlocks: one UFGUnlockRecipe holding every recipe. The unlock objects
     #    are instanced sub-objects of the schematic, so an existing one is edited
     #    rather than replaced — replacing it would drop anything else it carries.
     recipe_classes = []
@@ -712,7 +781,7 @@ def audit_schematic(vanilla, schematics):
         cls_r = _gen_class(RECIPE_DIR + "/" + recipe)
         if cls_r:
             recipe_classes.append(cls_r)
-    _check("all four recipe classes resolve", len(recipe_classes) == 4, str(len(recipe_classes)))
+    _check("all {0} recipe classes resolve".format(len(PARTS)), len(recipe_classes) == len(PARTS), str(len(recipe_classes)))
 
     unlocks = _get(cdo, "m_unlocks") or []
     unlock_recipe = None
@@ -760,7 +829,7 @@ def audit_schematic(vanilla, schematics):
                              "schematic unlock: added " + ", ".join(_name_of(c) for c in missing)) or dirty
         listed = [_name_of(c) for c in (_get(unlock_recipe, "m_recipes") or [])]
 
-    _check("schematic unlocks all four recipes", len(recipe_classes) == 4 and
+    _check("schematic unlocks all {0} recipes".format(len(PARTS)), len(recipe_classes) == len(PARTS) and
            all(_name_of(c) in listed for c in recipe_classes), str(listed))
 
     # 4. Visible after Basic Steel Production — and gated the RIGHT WAY ROUND. See
@@ -873,6 +942,57 @@ def audit_schematic(vanilla, schematics):
 # G — read it back from disk, which is the only reading that counts
 # ---------------------------------------------------------------------------
 
+def audit_socket_table():
+    """
+    H. The link ends' socket table (§16.5): Config/ACPR_Sockets.json, generated by acpr_sockets.py
+    and committed. It must be there and well-formed; when the project's game version differs from
+    the one it was measured on, the cheap signatures (connection positions, mesh vertex and
+    triangle counts) say whether anything a fit depends on moved — a WARN names what did.
+    """
+    _log("=== H. socket table ===")
+    scripts = os.path.join(os.path.abspath(str(unreal.Paths.project_dir())), "Mods", "GameFeatures", MOD, "Scripts")
+    path = os.path.join(os.path.dirname(scripts), "Config", "ACPR_Sockets.json")
+    if not _check("socket table present", os.path.isfile(path), path):
+        return
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            table = json.load(handle)
+    except ValueError as error:
+        _check("socket table parses", False, str(error))
+        return
+    default = table.get("default") or {}
+    _check("socket table parses", True, "{0} classes".format(len(table.get("sockets") or {})))
+    _check("socket table default fit", default.get("radius", 0) > 0 and default.get("top", 0) > default.get("bottom", 0),
+           "r={0} {1}..{2} axis {3}".format(default.get("radius"), default.get("bottom"), default.get("top"), default.get("axis")))
+
+    library = runpy.run_path(os.path.join(scripts, "acpr_sockets.py"), init_globals={"ACPR_SOCKETS_LIBRARY": True})
+    measured, current = str(table.get("game_changelist")), library["game_changelist"]()
+    if measured == current:
+        _info("socket table game version", "measured on this game version (changelist {0})".format(current))
+        return
+    _info("socket table game version", "measured on changelist {0}, project is {1}; comparing signatures".format(measured, current))
+    now = library["signatures"]()
+    unchanged, moved, new = 0, [], []
+    for cls, fits in (table.get("sockets") or {}).items():
+        for name, fit in fits.items():
+            if fit.get("signature") is None:
+                continue
+            if now.get(cls, {}).get(name) == fit["signature"]:
+                unchanged += 1
+            else:
+                moved.append("{0} / {1}".format(cls.split(".")[-1], name))
+    for cls, sig in now.items():
+        for name in sig:
+            if name not in (table.get("sockets") or {}).get(cls, {}):
+                new.append("{0} / {1}".format(cls.split(".")[-1], name))
+    if moved or new:
+        _warn("socket table outdated",
+              "{0} unchanged; changed: {1}; not in the table: {2} — run acpr_sockets.py and review its diff".format(
+                  unchanged, ", ".join(moved) or "-", ", ".join(new) or "-"))
+    else:
+        _info("socket table signatures", "{0} unchanged on the newer game version; nothing to re-measure".format(unchanged))
+
+
 def verify_from_disk():
     if not FIX or not _changes:
         return
@@ -954,7 +1074,8 @@ def main():
                             ("D. holograms", audit_holograms, ()),
                             ("E. recipes", audit_recipes, (by_display,)),
                             ("F. unlock", audit_schematic, (vanilla, schematics)),
-                            ("G. re-read", verify_from_disk, ())):
+                            ("G. re-read", verify_from_disk, ()),
+                            ("H. socket table", audit_socket_table, ())):
         try:
             fn(*args)
         except Exception as e:
@@ -964,10 +1085,12 @@ def main():
 
     failed = [c for c in _checks if c[1] is False]
     _log("=== summary ===")
-    _log("{0} checks, {1} failed, {2} change(s) written".format(
-        len([c for c in _checks if c[1] is not None]), len(failed), len(_changes)))
+    _log("{0} checks, {1} failed, {2} warning(s), {3} change(s) written".format(
+        len([c for c in _checks if c[1] is not None]), len(failed), len(_warnings), len(_changes)))
     for label, ok, detail in failed:
         _log("  FAIL  {0}  {1}".format(label, detail))
+    for label, detail in _warnings:
+        _log("  WARN  {0}  {1}".format(label, detail))
     for change in _changes:
         _log("  changed  " + change)
     if not failed:

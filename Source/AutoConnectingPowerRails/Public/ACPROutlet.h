@@ -229,9 +229,10 @@ public:
 	 * The pad is its own component, one mesh per seat, and it sits flush.
 	 *
 	 * Three seats, each with its own width and its own plane:
-	 *   Rail body      47.172 (the chamfered flat), top sunk mBodyInset below the face — invisible on
-	 *                  the flat, visible as the plug that crosses the groove, which is what §A.2's
-	 *                  "interrupts the groove" was for
+	 *   Rail body      47.172 (the chamfered flat), top -mBodyInset above the face — a millimetre
+	 *                  proud, so the pad covers the groove wall's top edge (see mBodyInset); visible
+	 *                  as the plug that crosses the groove, which is what §A.2's "interrupts the
+	 *                  groove" was for
 	 *   Rail terminal  44 (the pocket), top ON the terminal plane — the pocket is 3 deep, the pad 2
 	 *   Junction       50 (the socket), top on the seat floor, mJunctionTerminalInset in
 	 * All three chamfered at ACCENT_WIDTH to match what they sit in. The mesh is
@@ -261,9 +262,13 @@ public:
 	UPROPERTY( EditDefaultsOnly, Category = "ACPR|Outlet" )
 	float mBaseDepth = 2.0f;
 
-	/** Body seat: the pad's top a millimetre below the Rail's flat — sunk in, never proud, and no z-fighting. */
+	/**
+	 * Body seat: the pad's top a millimetre ABOVE the Rail's flat. Sunk below it, the groove wall's
+	 * top millimetre stands clear of the pad and catches the light as a thin bright gap around the
+	 * plug; proud by the same millimetre the pad covers that wall, and nothing is coplanar either way.
+	 */
 	UPROPERTY( EditDefaultsOnly, Category = "ACPR|Outlet" )
-	float mBodyInset = 0.1f;
+	float mBodyInset = -0.1f;
 	/** Rail terminal seat: the pad's top exactly on the terminal plane, §9 and §11. */
 	UPROPERTY( EditDefaultsOnly, Category = "ACPR|Outlet" )
 	float mRailTerminalInset = 0.0f;
@@ -309,6 +314,13 @@ protected:
 	/** The power delegate's handler: the network's power changed on this host. */
 	void HandleHasPowerChanged( bool hasPower );
 
+	/**
+	 * Pushes the cue material from the current state. Events only: the terminal state and the
+	 * power delegate on the server, the replicated state on a client. Virtual so the Wireless Outlet
+	 * can refresh what else it draws from the same state (its link lines) on the same events.
+	 */
+	virtual void RefreshIndicators();
+
 	UFUNCTION()
 	void OnRep_TerminalState();
 
@@ -344,9 +356,6 @@ private:
 	UPROPERTY( VisibleAnywhere, Category = "ACPR|Outlet" )
 	// UFGColoredInstanceMeshProxy for the indicators — see AACPRRail::mRailMeshComponent.
 	TObjectPtr< class UFGColoredInstanceMeshProxy > mOutletMesh = nullptr;
-	/** Pushes the cue material from the current state. Events only. */
-	void RefreshIndicators();
-
 	/** A client's view — see AACPRRail::mTerminalStateRep. Untested in multiplayer. */
 	UPROPERTY( ReplicatedUsing = OnRep_TerminalState )
 	TArray< uint8 > mTerminalStateRep;

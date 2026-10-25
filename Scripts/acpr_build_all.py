@@ -12,11 +12,11 @@ it had been exec'd at the Output Log, and stops at the first one that reports a 
     acpr_validate.py       the audit
 
 A step has failed when it raised, or when its own tally says so (_failed / _problems /
-a FAIL in _checks); the step's own log under Saved/ACPR/ has the detail. Steps after the
+a FAIL in _checks); the step's own log under Scripts/Temp/ has the detail. Steps after the
 failing one are not run, so the editor is left in a state the failing step's log describes.
 
 acpr_fingerprint.py runs last with FINGERPRINT_LABEL; with "after" it diffs against the
-before.json in Saved/ACPR_Fingerprint/ when there is one. Set FINGERPRINT_LABEL = None to skip it.
+acpr_fingerprint_before.json in Scripts/Temp/ when there is one. Set FINGERPRINT_LABEL = None to skip it.
 
 Before running it: build Development Editor and restart the editor, so the C++ classes exist.
 
@@ -24,7 +24,7 @@ Run this INSIDE the Unreal editor:
     Window > Developer Tools > Output Log, switch the dropdown from "Cmd" to
     "Python", then:  exec(open(r"<plugin>/Scripts/acpr_build_all.py").read())
 
-Writes Saved/ACPR/ACPR_build_all_log.txt.
+Writes Scripts/Temp/acpr_build_all_log.txt.
 """
 
 import os
@@ -40,7 +40,7 @@ FINGERPRINT_LABEL = "after"
 STEPS = ("acpr_buildables.py", "acpr_meshes.py", "acpr_materials.py", "acpr_bind_meshes.py",
          "acpr_icons.py", "acpr_validate.py")
 
-LOG_NAME = "ACPR_build_all_log.txt"
+LOG_NAME = "acpr_build_all_log.txt"
 _lines = []
 
 
@@ -49,15 +49,15 @@ def _log(message):
     unreal.log("[ACPR-BUILD-ALL] " + message)
 
 
-def _saved_dir(name):
-    directory = os.path.join(os.path.abspath(str(unreal.Paths.project_saved_dir())), name)
-    if not os.path.isdir(directory):
-        os.makedirs(directory)
-    return directory
-
-
 def _scripts_dir():
     return os.path.join(os.path.abspath(str(unreal.Paths.project_dir())), "Mods", "GameFeatures", MOD, "Scripts")
+
+
+def _temp_dir():
+    """Scripts/Temp — where every script writes its log and scratch output; git ignores it."""
+    directory = os.path.join(_scripts_dir(), "Temp")
+    os.makedirs(directory, exist_ok=True)
+    return directory
 
 
 def _failures(namespace):
@@ -74,14 +74,19 @@ def _failures(namespace):
     return out
 
 
+def _warnings(namespace):
+    """A script's WARN lines (acpr_validate.py): to act on, but not a failure."""
+    return ["WARN {0} {1}".format(label, detail) for label, detail in (namespace.get("_warnings") or [])]
+
+
 def _run(path, init_globals=None):
-    """Runs one script; returns (failures, seconds). An exception is a failure too."""
+    """Runs one script; returns (failures, warnings, seconds). An exception is a failure too."""
     started = time.time()
     try:
         namespace = runpy.run_path(path, init_globals=init_globals, run_name="__main__")
     except Exception:
-        return ["raised:"] + traceback.format_exc().splitlines(), time.time() - started
-    return _failures(namespace), time.time() - started
+        return ["raised:"] + traceback.format_exc().splitlines(), [], time.time() - started
+    return _failures(namespace), _warnings(namespace), time.time() - started
 
 
 def main():
@@ -92,34 +97,38 @@ def main():
         _log("missing: " + ", ".join(missing))
         return
 
+    all_warnings = []
     for index, name in enumerate(STEPS, 1):
         _log("")
         _log("=== {0}/{1} {2} ===".format(index, len(STEPS), name))
-        failures, seconds = _run(os.path.join(scripts, name))
+        failures, warnings, seconds = _run(os.path.join(scripts, name))
         if failures:
             _log("{0} FAILED after {1:.0f} s — stopping here; its own log has the detail".format(name, seconds))
             for line in failures:
                 _log("    " + line)
             return
-        _log("{0} ok ({1:.0f} s)".format(name, seconds))
+        for line in warnings:
+            _log("    " + line)
+        _log("{0} ok ({1:.0f} s){2}".format(name, seconds, ", with warnings" if warnings else ""))
+        all_warnings.extend(warnings)
 
     if FINGERPRINT_LABEL:
         _log("")
         _log("=== fingerprint ({0}) ===".format(FINGERPRINT_LABEL))
-        failures, seconds = _run(os.path.join(scripts, "acpr_fingerprint.py"), {"ACPR_LABEL": FINGERPRINT_LABEL})
+        failures, _, seconds = _run(os.path.join(scripts, "acpr_fingerprint.py"), {"ACPR_LABEL": FINGERPRINT_LABEL})
         for line in failures:
             _log("    " + line)
         _log("fingerprint {0} ({1:.0f} s)".format("FAILED" if failures else "ok", seconds))
 
     _log("")
-    _log("all steps ran clean")
+    _log("all steps ran clean" + (" — {0} warning(s) above to act on".format(len(all_warnings)) if all_warnings else ""))
 
 
 try:
     main()
 finally:
     try:
-        path = os.path.join(_saved_dir("ACPR"), LOG_NAME)
+        path = os.path.join(_temp_dir(), LOG_NAME)
         with open(path, "w", encoding="utf-8") as handle:
             handle.write("Auto-Connecting Power Rails — regenerate all content\n")
             handle.write("=" * 60 + "\n\n")

@@ -1,7 +1,7 @@
 {
 	"FileVersion": 3,
 	"Version": 1,
-	"VersionName": "1.0.1",
+	"VersionName": "1.1.0",
 	"FriendlyName": "Auto-Connecting Power Rails",
 	"Description": "Power, but through auto-connecting rails and junctions that snap together,  and feed the rest of the factory through outlets.",
 	"Category": "Modding",
@@ -34,7 +34,7 @@
 			"BasePlugin": true
 		}
 	],
-	"SemVersion": "1.0.1",
+	"SemVersion": "1.1.0",
 	"GameVersion": ">=502094",
 	"GameFeature": true
 }

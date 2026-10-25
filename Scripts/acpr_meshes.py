@@ -195,6 +195,33 @@ OUTLET_RADIAL_STEPS = 24
 OUTLET_RIB_COUNT = 3
 OUTLET_RIB_DEPTH = 0.015 * M
 OUTLET_RIB_HEIGHT = 0.03 * M
+
+# THE WIRELESS OUTLET (§16.5): the Outlet's cylinder cut short to a pad, with concentric ring
+# grooves in its TOP face as the cue — a charging-pad reading — and the same chamfered cap ring
+# as its accent. Same radius as the Outlet, so it takes the Outlet's fit (mVisualExtent = 40)
+# and the Outlet's three pads unchanged. WIRELESS_HEIGHT is AACPRWirelessOutlet::mLinkOriginHeight:
+# the link lines leave from the top face's centre.
+WIRELESS_HEIGHT = 0.12 * M
+WIRELESS_RING_COUNT = 3
+WIRELESS_RING_WIDTH = 0.02 * M
+WIRELESS_RING_DEPTH = 0.006 * M
+WIRELESS_RING_INNER = 0.05 * M     # the innermost ring's inner radius; rings step outward evenly
+WIRELESS_RING_STEP = 0.045 * M
+
+# THE LINK LINE (§16.5): one unit of line, authored 100 uu long along +X from the origin and
+# 2 uu across, instanced per link and scaled to length and width by the C++ (RebuildLines).
+# A hexagonal prism, so a thin line has no visible facet count at any distance.
+LINK_LENGTH = 1.0 * M
+LINK_RADIUS = 0.01 * M
+LINK_STEPS = 6
+# §16.5's link end: the open tube that sits round a linked machine's power socket, authored like
+# the link unit (LINK_LENGTH along +X, unit radius) and scaled by the outlet to the socket's size.
+LINK_END_STEPS = 24
+
+# THE RANGE SPHERE: the hologram's readout, authored at RANGE_SPHERE_RADIUS and scaled to the
+# tier's range (AACPRWirelessOutletHologram::mRangeSphereAuthoredRadius must agree).
+RANGE_SPHERE_RADIUS = 50.0
+RANGE_SPHERE_STEPS = (24, 32)
 # A slim square pad at the Outlet's base. Its interruption of the Rail's power strip is
 # what says "power leaves the network here", and it works in both host modes: on a Rail
 # end the pad matches the pocket it caps, on a Junction face the socket.
@@ -433,9 +460,12 @@ MESHES = ("SM_ACPR_RailBody", "SM_ACPR_RailTerminal",
           # three. The C++ picks one the way ApplyCapMesh picks a Cap.
           "SM_ACPR_OutletBaseBody", "SM_ACPR_OutletBaseRail", "SM_ACPR_OutletBaseJunction",
           # One Cap per host face width — see CAP_FACE_RAIL.
-          "SM_ACPR_CapRail", "SM_ACPR_CapJunction")
+          "SM_ACPR_CapRail", "SM_ACPR_CapJunction",
+          # §16: the Wireless Outlet's body (it shares the Outlet's pads), the link line unit and
+          # the hologram's range sphere.
+          "SM_ACPR_WirelessOutlet", "SM_ACPR_Link", "SM_ACPR_RangeSphere")
 
-LOG_NAME = "ACPR_mesh_log.txt"
+LOG_NAME = "acpr_meshes_log.txt"
 
 _built = []
 _failed = []
@@ -463,17 +493,19 @@ def _note(text):
         _log("NOTE  " + text)
 
 
+def _temp_dir(*parts):
+    """<mod>/Scripts/Temp — where every script writes its log and scratch output; git ignores it."""
+    directory = os.path.join(os.path.abspath(str(unreal.Paths.project_dir())), "Mods", "GameFeatures", MOD,
+                             "Scripts", "Temp", *parts)
+    os.makedirs(directory, exist_ok=True)
+    return directory
+
+
 def _write_log():
-    """The mesh pass logs to a FILE as well as the Output Log — <project>/Saved/ACPR/ —
+    """The mesh pass logs to a FILE as well as the Output Log — Scripts/Temp/ —
     so the build-stage triangle trace can be read outside the editor."""
     try:
-        directory = os.path.join(str(unreal.Paths.project_saved_dir()), "ACPR")
-    except Exception:
-        directory = os.path.join(os.path.expanduser("~"), "ACPR")
-    directory = os.path.abspath(directory)
-    try:
-        if not os.path.isdir(directory):
-            os.makedirs(directory)
+        directory = _temp_dir()
         with open(os.path.join(directory, LOG_NAME), "w") as handle:
             handle.write("Auto-Connecting Power Rails — mesh build log\n")
             handle.write("=" * 60 + "\n\n")
@@ -858,7 +890,7 @@ def _name_slots(path, name, names):
         _note("{0}: could not name the slots: {1}".format(name, e))
 
 
-def _save(mesh, name, collision_mesh=None):
+def _save(mesh, name, collision_mesh=None, collision=True):
     path = MESH_DIR + "/" + name
     if unreal.EditorAssetLibrary.does_asset_exist(path):
         if not OVERWRITE:
@@ -881,8 +913,12 @@ def _save(mesh, name, collision_mesh=None):
         _info(name, "created -> {0}".format(result))
         _name_slots(path, name, names)
         # Collision BEFORE the save, so the shapes are in the package that gets written rather
-        # than in a dirty asset nobody flushes.
-        _collision(mesh, path, name, collision_mesh)
+        # than in a dirty asset nobody flushes. A mesh that only ever sits on a component with
+        # collision disabled (the link line, the range sphere) skips it.
+        if collision:
+            _collision(mesh, path, name, collision_mesh)
+        else:
+            _info("  " + name + " collision", "none by design — drawn only, never traced")
         unreal.EditorAssetLibrary.save_asset(path, only_if_is_dirty=False)
         _built.append(name)
         return True
@@ -2399,6 +2435,124 @@ def make_outlet():
     return _save(mesh, "SM_ACPR_Outlet")
 
 
+def make_wireless_outlet():
+    """§16.5's indicator: the Outlet's cylinder, WIRELESS_HEIGHT tall, with WIRELESS_RING_COUNT
+    concentric ring grooves cut into its top face as the cue, and the Outlet's chamfered cap
+    ring as the accent. Authored along +Z with its base on the mounting plane, like the Outlet,
+    so AACPROutlet::FitOutletMesh places it unchanged.
+
+    The chamfer is cut FIRST and the grooves LAST: a boolean re-triangulates the face it cuts,
+    and the last cut is the one whose triangles survive. Cut the other way round, the chamfer
+    re-fans the top face around the outermost groove into slivers that do not respect the
+    groove's rim, and the ring's cue edge comes out as a sawtooth."""
+    mesh = _new_mesh()
+    _cylinder(mesh, OUTLET_RADIUS, WIRELESS_HEIGHT, steps=OUTLET_RADIAL_STEPS)
+    mesh = _tag(mesh, MATERIAL_ID_BODY)
+    top = WIRELESS_HEIGHT
+
+    # The accent: the Outlet's cap chamfer, verbatim (make_outlet), on the shorter body.
+    accent = []
+    if ACCENT_WIDTH > 0.0:
+        cone_fn = getattr(unreal.GeometryScript_Primitives, "append_cone", None)
+        if cone_fn is None:
+            _note("Wireless Outlet: GeometryScript_Primitives.append_cone is not in this build, so "
+                  "the cap ring is not chamfered and the Wireless Outlet has NO accent.")
+        else:
+            w = ACCENT_WIDTH
+            m = 0.01 * M
+            z0 = top - w
+            disc = _new_mesh()
+            _cylinder(disc, OUTLET_RADIUS + m, w + m, at=_xf(0.0, 0.0, z0), steps=OUTLET_RADIAL_STEPS)
+            frustum = _new_mesh()
+            kwargs = {"base_radius": OUTLET_RADIUS + m, "top_radius": OUTLET_RADIUS - w - m,
+                      "height": w + 2.0 * m, "radial_steps": OUTLET_RADIAL_STEPS, "capped": True}
+            if _ORIGIN_BASE is not None:
+                kwargs["origin"] = _ORIGIN_BASE
+            cone_fn(frustum, unreal.GeometryScriptPrimitiveOptions(), _xf(0.0, 0.0, z0 - m), **kwargs)
+            tool = _subtract(disc, frustum)
+            before = _triangle_count(mesh)
+            mesh = _subtract(mesh, tool)
+            _info("  Wireless Outlet cap chamfer", "{0} -> {1} triangles".format(before, _triangle_count(mesh)))
+            accent.append(_vol_cone(z0, top, OUTLET_RADIUS, OUTLET_RADIUS - w, material_id=MATERIAL_ID_ACCENT))
+
+    cue = []
+    # Each ring: a fat annulus (outer cylinder minus inner) standing through the top face,
+    # subtracted, leaves a groove WIRELESS_RING_DEPTH deep. The groove's floor and walls are the
+    # cue: a band between the two radii over the groove's depth, stopping a quarter-depth below
+    # the top face so no top-face triangle can be swept in by the band's pad.
+    #
+    # The band's radial pad grows with the radius. A wall is a polygon of OUTLET_RADIAL_STEPS
+    # sides, and a wall triangle's centroid sits inside the chord, r * (1 - cos(pi / steps))
+    # short of the radius its corners are on — 0.04 uu at the innermost ring, 0.12 at the
+    # outermost, which is more than the fixed pad; with the fixed pad alone the outer groove's
+    # inner wall was tagged triangle by triangle on which way the boolean had split each quad.
+    # The z range is tightened by the same amount so the top face stays out.
+    chord = 1.0 - math.cos(math.pi / OUTLET_RADIAL_STEPS)
+    for i in range(WIRELESS_RING_COUNT):
+        r_in = WIRELESS_RING_INNER + i * WIRELESS_RING_STEP
+        r_out = r_in + WIRELESS_RING_WIDTH
+        z = top - WIRELESS_RING_DEPTH
+        pad = CUE_PAD + r_out * chord
+        outer = _new_mesh()
+        _cylinder(outer, r_out, WIRELESS_RING_DEPTH * 3.0, at=_xf(0.0, 0.0, z), steps=OUTLET_RADIAL_STEPS)
+        inner = _new_mesh()
+        _cylinder(inner, r_in, WIRELESS_RING_DEPTH * 5.0, at=_xf(0.0, 0.0, z - WIRELESS_RING_DEPTH),
+                  steps=OUTLET_RADIAL_STEPS)
+        ring = _subtract(outer, inner)
+        cue.append(_vol_band(z, top - WIRELESS_RING_DEPTH * 0.25 - pad, r_in, r_out, tool=ring, pad=pad))
+        mesh = _subtract(mesh, ring)
+
+    mesh = _tag(mesh, MATERIAL_ID_BODY)
+    mesh = _mark_cue(mesh, cue + accent, "WirelessOutlet")
+    mesh = _finish(mesh, "WirelessOutlet")
+    return _save(mesh, "SM_ACPR_WirelessOutlet")
+
+
+def make_link():
+    """§16.5's link line unit: a thin prism LINK_LENGTH long along +X starting at the origin,
+    all cue, no collision. The cylinder primitive is authored along +Z with its base at the
+    origin, so it is turned onto +X by the transform: pitch -90, the same turn
+    AACPRCap::FitZAuthoredMeshToLocalX applies (a rotation matrix's Z axis under pitch P is
+    (-sin P, 0, cos P), so -90 lands +Z on +X). The log's "rot=P=-90" lines are the check.
+    Authored from x = 0 to LINK_LENGTH: the link material reads that position for its bead."""
+    mesh = _new_mesh()
+    _cylinder(mesh, LINK_RADIUS, LINK_LENGTH, at=unreal.Transform(unreal.Vector(0.0, 0.0, 0.0),
+              unreal.Rotator(roll=0.0, pitch=-90.0, yaw=0.0), unreal.Vector(1.0, 1.0, 1.0)),
+              steps=LINK_STEPS)
+    mesh = _tag(mesh, MATERIAL_ID_CUE)
+    mesh = _finish(mesh, "Link")
+    return _save(mesh, "SM_ACPR_Link", collision=False)
+
+
+def make_link_end():
+    """§16.5's link end: an OPEN tube (no caps — the socket shows through it) LINK_LENGTH long
+    along +X from the origin, unit radius, all cue, no collision. Authored like the link unit so
+    the same material reads its position along the axis; AACPRWirelessOutlet::RebuildLines
+    scales it to the socket's radius and height."""
+    mesh = _new_mesh()
+    _cylinder(mesh, 1.0, LINK_LENGTH, at=unreal.Transform(unreal.Vector(0.0, 0.0, 0.0),
+              unreal.Rotator(roll=0.0, pitch=-90.0, yaw=0.0), unreal.Vector(1.0, 1.0, 1.0)),
+              steps=LINK_END_STEPS, capped=False)
+    mesh = _tag(mesh, MATERIAL_ID_CUE)
+    mesh = _finish(mesh, "LinkEnd")
+    return _save(mesh, "SM_ACPR_LinkEnd", collision=False)
+
+
+def make_range_sphere():
+    """The hologram's range readout: a sphere of RANGE_SPHERE_RADIUS, all one slot (the
+    materials pass puts the translucent range material on it), no collision."""
+    mesh = _new_mesh()
+    options = unreal.GeometryScriptPrimitiveOptions()
+    kwargs = {"radius": RANGE_SPHERE_RADIUS, "steps_phi": RANGE_SPHERE_STEPS[0],
+              "steps_theta": RANGE_SPHERE_STEPS[1]}
+    if _ORIGIN_CENTER is not None:
+        kwargs["origin"] = _ORIGIN_CENTER
+    unreal.GeometryScript_Primitives.append_sphere_lat_long(mesh, options, _xf(), **kwargs)
+    mesh = _tag(mesh, MATERIAL_ID_CUE)
+    mesh = _finish(mesh, "RangeSphere")
+    return _save(mesh, "SM_ACPR_RangeSphere", collision=False)
+
+
 def _make_outlet_base(size, name, asset):
     """The Outlet's pad, authored with its TOP at z = 0 and its thickness reaching -Z, so
     an origin on the mounting plane puts the top flush with that plane and a negative
@@ -2588,7 +2742,11 @@ def main():
                       ("Outlet base (rail end)", make_outlet_base_rail),
                       ("Outlet base (junction)", make_outlet_base_junction),
                       ("Cap (Rail)", make_cap_rail),
-                      ("Cap (Junction)", make_cap_junction)):
+                      ("Cap (Junction)", make_cap_junction),
+                      ("Wireless Outlet", make_wireless_outlet),
+                      ("Link line", make_link),
+                      ("Link end", make_link_end),
+                      ("Range sphere", make_range_sphere)):
         try:
             fn()
         except Exception as e:

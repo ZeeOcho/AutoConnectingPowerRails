@@ -54,6 +54,15 @@ struct AUTOCONNECTINGPOWERRAILS_API FACPRSpace
 	 */
 	static AFGBuildableBlueprintDesigner* OfActor( const AActor* actor );
 
+	/**
+	 * The Designer ANY buildable or hologram belongs to — a vanilla machine, a vanilla machine's
+	 * hologram — or null for the world. §16.2's same-space rule asks this about machines that are not
+	 * hosts, and the getters above are not linkable, so the field is read by name through reflection:
+	 * AFGBuildable::mBlueprintDesigner and AFGHologram::mBlueprintDesigner are both UPROPERTY
+	 * (FGBuildable.h:1013, FGHologram.h:775). A class without such a field answers null.
+	 */
+	static AFGBuildableBlueprintDesigner* OfObject( const UObject* object );
+
 	/** "world" or the Designer's name. */
 	static FString Describe( const AFGBuildableBlueprintDesigner* designer );
 
