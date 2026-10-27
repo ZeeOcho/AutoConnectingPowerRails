@@ -3,24 +3,31 @@
 // While a hologram is held, the player sees what §16.3 would decide the moment it is built:
 //
 //   placing a MACHINE   every Wireless Outlet whose range reaches a power connection of the hologram
-//                       shows its range sphere; the outlet the machine would link to draws a powered
-//                       line to that connection; every other outlet in range draws a faint line —
-//                       the whole line when its path is clear (the outlet the machine would fall
-//                       back to), cut short at the obstacle when it is not (what blocks it);
+//                       shows its range sphere; the outlet the machine would link to draws the
+//                       preview line to that connection; every other outlet in range draws a faint
+//                       line — the whole line when its path is clear (the outlet the machine would
+//                       fall back to), cut short at the obstacle when it is not (what blocks it);
 //   placing an OUTLET   the hologram draws its own range sphere (AACPRWirelessOutletHologram) and,
-//                       through this component, a powered line to every machine connection it would
-//                       take, and a faint line cut short at the obstacle to every one it is blocked
-//                       from. Machines wired, or kept by a nearer outlet, draw nothing: the outlet
-//                       would not touch them.
+//                       through this component, the preview line to every machine connection it
+//                       would take, with the link end tube on that machine's socket as the built
+//                       outlet will draw it, and a faint line cut short at the obstacle to every one
+//                       it is blocked from. Machines wired, or kept by a nearer outlet, draw nothing:
+//                       the outlet would not touch them. The hologram's own body wears the same tube,
+//                       so the hologram can be found from where the machines are.
+//
+// The preview line is solid and as bright as the selected cue (MI_ACPR_LinkPreview), whatever the
+// network's power: the player judges a Wireless Outlet's reach from among the machines, far from
+// the hologram, and a bead every two seconds cannot be read from there. The faint line stays the
+// link's own unpowered dashed line, so "would link" and "would not" remain two readings.
 //
 // The component lives on the hologram and dies with it. It is the one per-frame consumer of the
 // link subsystem, gated twice (invariant 17): it exists only while a local hologram does, and it
 // re-asks only when the hologram has moved or a link event has happened since its last answer
 // (UACPRWirelessLinkSubsystem::GetWorldVersion). Each answer is the subsystem's bounded lookup.
 //
-// Everything drawn is local to the player holding the hologram — the lines are two instanced mesh
-// components of this component's own, the spheres are the outlets' (SetRangeShownBy, keyed by this
-// component so several previews and the dismantle aim never fight over one sphere).
+// Everything drawn is local to the player holding the hologram — the lines and tubes are instanced
+// mesh components of this component's own, the spheres are the outlets' (SetRangeShownBy, keyed by
+// this component so several previews and the dismantle aim never fight over one sphere).
 
 #pragma once
 
@@ -61,7 +68,7 @@ private:
 	/** The hologram's build class default, which carries the mesh, the materials and (in outlet mode) the tier. */
 	const AACPRWirelessOutlet* Rules() const;
 
-	/** Makes the two line components on first use; false when the mesh or a material is missing. */
+	/** Makes the line and tube components on first use; false when a mesh or a material is missing. */
 	bool EnsureLines();
 
 	/** Re-asks the subsystem and redraws. */
@@ -69,7 +76,12 @@ private:
 	void RefreshMachine( class UACPRWirelessLinkSubsystem* links, AFGBuildableHologram* hologram );
 	void RefreshOutlet( class UACPRWirelessLinkSubsystem* links, AFGBuildableHologram* hologram );
 
-	void DrawLine( const FVector& from, const FVector& to, bool powered );
+	/** `chosen`: the link the placement would make (the preview line); otherwise the faint one. */
+	void DrawLine( const FVector& from, const FVector& to, bool chosen );
+	/** The outer link end tube on a machine's socket, as the built outlet will draw it. */
+	void DrawEnd( const class UFGPowerConnectionComponent* connection );
+	/** The same tube round the outlet hologram's own body, from its mounting face to its link origin. */
+	void DrawHologramEnd( const AFGBuildableHologram* hologram );
 	void ShowSpheres( const TSet< TWeakObjectPtr< AACPRWirelessOutlet > >& outlets );
 	void Clear();
 
@@ -77,9 +89,11 @@ private:
 	TWeakObjectPtr< const AACPRWirelessOutlet > mRules;
 
 	UPROPERTY()
-	TObjectPtr< UInstancedStaticMeshComponent > mPoweredLines = nullptr;
+	TObjectPtr< UInstancedStaticMeshComponent > mPreviewLines = nullptr;
 	UPROPERTY()
 	TObjectPtr< UInstancedStaticMeshComponent > mFaintLines = nullptr;
+	UPROPERTY()
+	TObjectPtr< UInstancedStaticMeshComponent > mEnds = nullptr;
 	bool mLinesMissing = false;
 
 	/** The outlets whose spheres this preview is showing, to take back when they leave the set. */

@@ -99,8 +99,10 @@ struct FACPRPreviewLine
 {
 	FVector From = FVector::ZeroVector;
 	FVector To = FVector::ZeroVector;
-	/** The link this placement would make: drawn as a powered line. Otherwise a faint one, possibly cut short. */
+	/** The link this placement would make: drawn as the preview's solid line, with its link end. Otherwise a faint one, possibly cut short. */
 	bool Chosen = false;
+	/** The machine connection the line is for — the link end's socket when Chosen. */
+	const class UFGPowerConnectionComponent* Connection = nullptr;
 };
 
 UCLASS()

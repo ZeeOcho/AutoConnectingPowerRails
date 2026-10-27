@@ -79,13 +79,37 @@ def _warnings(namespace):
     return ["WARN {0} {1}".format(label, detail) for label, detail in (namespace.get("_warnings") or [])]
 
 
+def _own_log_path(script_path):
+    """Where the script writes its own log: <mod>/Scripts/Temp/acpr_<name>_log.txt."""
+    stem = os.path.splitext(os.path.basename(script_path))[0]
+    return os.path.join(_temp_dir(), stem + "_log.txt")
+
+
 def _run(path, init_globals=None):
     """Runs one script; returns (failures, warnings, seconds). An exception is a failure too."""
     started = time.time()
     try:
         namespace = runpy.run_path(path, init_globals=init_globals, run_name="__main__")
     except Exception:
-        return ["raised:"] + traceback.format_exc().splitlines(), [], time.time() - started
+        lines = traceback.format_exc().splitlines()
+        # Every script writes its own log, exceptions included — but not one that failed before
+        # its logging existed (a module-level error, say). The log a reader goes to must still
+        # say what happened, so it is written here when the script left it stale or missing.
+        own = _own_log_path(path)
+        try:
+            fresh = os.path.isfile(own) and os.path.getmtime(own) >= started
+        except OSError:
+            fresh = False
+        if not fresh:
+            try:
+                with open(own, "w", encoding="utf-8") as handle:
+                    handle.write("Auto-Connecting Power Rails — {0}\n".format(os.path.basename(path)))
+                    handle.write("=" * 60 + "\n\n")
+                    handle.write("the script raised before writing its own log (acpr_build_all.py wrote this one):\n")
+                    handle.write("\n".join("    " + line for line in lines) + "\n")
+            except OSError as error:
+                lines.append("(its own log could not be written either: {0})".format(error))
+        return ["raised:"] + lines, [], time.time() - started
     return _failures(namespace), _warnings(namespace), time.time() - started
 
 

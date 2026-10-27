@@ -347,8 +347,9 @@ def _power_slot(axis, sign):
 # A material instance is one set of values, so one cue slot can only ever show one state.
 # The Junction has six faces that must each answer for themselves — a Rail coupled on +X
 # while -X is bare — so its cue is split six ways, slot 1 + face. Face order is
-# ( axis, sign ): +X, -X, +Y, -Y, +Z, -Z. Everything else on the mod has no per-face state
-# and stays in slot 1.
+# ( axis, sign ): +X, -X, +Y, -Y, +Z, -Z. The Rail body's groove is split the same way over
+# its four longitudinal faces (1..4: no Z, which is its length) so §12's highlight can light the
+# aimed face; everything else on the mod has no per-face state and stays in slot 1.
 JUNCTION_FACE_NAMES = ("+X", "-X", "+Y", "-Y", "+Z", "-Z")
 
 
@@ -781,8 +782,8 @@ def _collision(mesh, path, name, collision_mesh=None):
 # ACPRTerminalHost.h), so no number is restated anywhere.
 #
 #     Body            material ID 0
-#     Cue             ID 1 on every mesh but the Junction
-#     Cue_+X .. Cue_-Z   IDs 1..6 on the Junction, in _face_slot order
+#     Cue             ID 1 on every mesh but the Junction and the Rail body
+#     Cue_+X .. Cue_-Z   IDs 1..6 on the Junction, in _face_slot order; 1..4 (no Z) on the Rail body
 #     Accent          ID 7
 #     Power           ID 8 on the collar
 #     Power_+X .. Power_-Z   IDs 8..13 on the Junction, in _power_slot order
@@ -795,10 +796,12 @@ def _collision(mesh, path, name, collision_mesh=None):
 def _slot_name_for_id(material_id, name):
     """The slot name a material ID carries on mesh `name` (the asset's short name)."""
     junction = (name == "SM_ACPR_Junction")
+    # The Rail body's groove is one slot per face too (make_rail_body); its floors are not.
+    per_face_cue = junction or name == "SM_ACPR_RailBody"
     if material_id == MATERIAL_ID_BODY:
         return "Body"
     if MATERIAL_ID_CUE <= material_id < MATERIAL_ID_CUE + 6:
-        if junction:
+        if per_face_cue:
             return "Cue_" + JUNCTION_FACE_NAMES[material_id - MATERIAL_ID_CUE]
         return "Cue" if material_id == MATERIAL_ID_CUE else "Cue_unused_{0}".format(material_id)
     if material_id == MATERIAL_ID_ACCENT:
@@ -1813,7 +1816,7 @@ def _slot_census(mesh, name):
     for key in sorted(tally):
         if key == MATERIAL_ID_BODY:
             label = "body"
-        elif name == "Junction" and MATERIAL_ID_CUE <= key < MATERIAL_ID_CUE + 6:
+        elif name in ("Junction", "RailBody") and MATERIAL_ID_CUE <= key < MATERIAL_ID_CUE + 6:
             label = "cue " + JUNCTION_FACE_NAMES[key - MATERIAL_ID_CUE]
         elif key == MATERIAL_ID_CUE:
             label = "cue"
@@ -2023,7 +2026,7 @@ def make_rail_body():
     """0.5 x 0.5 m profile, authored 4 m along +Z with its base at the origin,
     because that is the frame the vanilla beam stretch scales (Appendix B.2).
 
-    The groove is on all four faces and runs the WHOLE length. It stops short of the
+    The groove is on all four faces, one cue slot per face, and runs the WHOLE length. It stops short of the
     Rail's ends so it does not run into the terminal indicators — but not by being
     authored that way. This mesh is stretched, so a 50 cm gap authored here would be
     50 cm on a 4 m Rail and 5 m on a 40 m one. The break is made instead by the
@@ -2047,8 +2050,14 @@ def make_rail_body():
         # the volume that decides which triangles glow, so the two cannot disagree —
         # except along Z, where the CUTTER deliberately overshoots both ends and the
         # VOLUME must not, or it would claim the end caps' triangles as well.
+        # ONE SLOT PER FACE (Cue_+X, Cue_-X, Cue_+Y, Cue_-Y in this mesh's own frame), as
+        # the Junction's: all four show the network's power, and §12's highlight lights the
+        # one face an Outlet hologram is aiming at — a material instance is one set of
+        # values, so a face that must answer alone needs a slot of its own.
+        axis, sign = (0, x) if x else (1, y)
         cue.append(_vol_box(centre[0], centre[1], RAIL_BODY_LENGTH * 0.5,
-                            size[0], size[1], RAIL_BODY_LENGTH, tool=tool))
+                            size[0], size[1], RAIL_BODY_LENGTH, tool=tool,
+                            material_id=_face_slot(axis, 1 if sign > 0 else -1)))
         mesh = _subtract(mesh, tool)
 
     mesh = _tag(mesh, MATERIAL_ID_BODY)

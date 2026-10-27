@@ -60,6 +60,13 @@ public:
 	/** §12's highlight: stored, and pushed at once when it changes. */
 	virtual void SetHighlight( const FACPRHighlight& highlight ) override;
 	virtual const FACPRHighlight* GetHighlight() const override { return &mHighlight; }
+
+	/**
+	 * Which of the body's four longitudinal faces a world-space face normal is: the index of that
+	 * face's groove slot (ACPRSlot::CueFace: +X, -X, +Y, -Y in the body mesh's own frame, where the
+	 * length is Z) and the bit in FACPRHighlight::BodyFaces. INDEX_NONE for a normal along the Rail.
+	 */
+	int32 BodyFaceOf( const FVector& worldNormal ) const;
 	virtual TArray< TWeakObjectPtr< AActor > >* GetAttachmentList() const override { return &mAttachments; }
 
 	/** §10.1. AFGBuildable::mBlueprintDesigner, our own protected field (FGBuildable.h:1014). */

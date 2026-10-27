@@ -265,8 +265,16 @@ struct FACPRHighlight
 	 */
 	uint8 Selected = 0;
 
-	bool IsSet() const { return Selected != 0; }
-	bool operator==( const FACPRHighlight& other ) const { return Selected == other.Selected; }
+	/**
+	 * Bit f = the Rail body's longitudinal face f is where an Outlet would body-mount (§8.1): that
+	 * face's groove lights Selected along the whole body, so the face can be read from where the
+	 * player stands to judge a Wireless Outlet's reach. Faces in the body mesh's own frame, the
+	 * order of its cue slots (AACPRRail::BodyFaceOf); only a Rail has them.
+	 */
+	uint8 BodyFaces = 0;
+
+	bool IsSet() const { return Selected != 0 || BodyFaces != 0; }
+	bool operator==( const FACPRHighlight& other ) const { return Selected == other.Selected && BodyFaces == other.BodyFaces; }
 	bool operator!=( const FACPRHighlight& other ) const { return !( *this == other ); }
 };
 
@@ -309,6 +317,8 @@ namespace ACPRSlot
  * One cue slot on one proxy, and which terminal it reports.
  *   TerminalIndex >= 0   that terminal's §4 state: open / coupled / powered / capped
  *   TerminalIndex == -1  the whole host: powered if any terminal is, else coupled if any is, else open
+ *   BodyFace >= 0        a whole-host slot that is one face of the Rail body's groove: Selected while
+ *                        an Outlet hologram body-mounts on that face (FACPRHighlight::BodyFaces)
  *   PowerFloor           the socket floor of TerminalIndex: while that terminal is OPEN, the
  *                        network's power — white or dim; once it is coupled or capped, DARK. A
  *                        coupled Rail's end sits on the terminal plane, 2 cm proud of the seat floor
@@ -321,6 +331,8 @@ struct FACPRIndicatorSlot
 	FName Slot;
 	int32 TerminalIndex = -1;
 	bool PowerFloor = false;
+	/** The Rail body's face this slot is the groove of (FACPRHighlight::BodyFaces bit), or -1. */
+	int32 BodyFace = -1;
 };
 static constexpr int32 ACPR_INDICATOR_HOST = -1;
 
@@ -564,13 +576,17 @@ struct AUTOCONNECTINGPOWERRAILS_API FACPRTerminalHighlight
 	 * `space` adds §10.1: with Enforce set, a host in a different build space than the placement shows
 	 * nothing at all, because the hologram will refuse it with vanilla's Designer message. Required
 	 * rather than defaulted, so every hologram states its answer instead of inheriting "don't care".
+	 *
+	 * `bodyFace` is §8.1's body mount: the Rail body face (AACPRRail::BodyFaceOf) an Outlet would
+	 * mount on, lit Selected along the body; INDEX_NONE when the aim is not a body mount.
 	 */
 	static void Show( TWeakObjectPtr< AActor >& lastHost,
 	                  AActor* hitActor,
 	                  const class UACPRTerminalComponent* selected,
 	                  const struct FACPRSpaceFilter& space,
 	                  const class UACPRTerminalComponent* pinned = nullptr,
-	                  const class UACPRTerminalComponent* pinned2 = nullptr );
+	                  const class UACPRTerminalComponent* pinned2 = nullptr,
+	                  int32 bodyFace = INDEX_NONE );
 
 	/**
 	 * Keeps one terminal lit Selected on its own host whatever the crosshair is on — the Rail's anchor

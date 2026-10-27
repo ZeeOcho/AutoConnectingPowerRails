@@ -1317,6 +1317,7 @@ void UACPRWirelessLinkSubsystem::PreviewOutletAt( const AACPRWirelessOutlet* rul
 			FACPRPreviewLine line;
 			line.From = origin;
 			line.To = point;
+			line.Connection = connection;
 			const AActor* const ends[] = { hologram, factory };
 			FVector blockedAt;
 			line.Chosen = LineIsClear( rules, origin, point, MakeArrayView( ends ), &blockedAt, nullptr );

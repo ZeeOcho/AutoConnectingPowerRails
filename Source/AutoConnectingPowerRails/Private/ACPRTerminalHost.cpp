@@ -45,7 +45,8 @@ void FACPRTerminalHighlight::Show( TWeakObjectPtr< AActor >& lastHost,
                                    const UACPRTerminalComponent* selected,
                                    const FACPRSpaceFilter& space,
                                    const UACPRTerminalComponent* pinned,
-                                   const UACPRTerminalComponent* pinned2 )
+                                   const UACPRTerminalComponent* pinned2,
+                                   int32 bodyFace )
 {
 	// Resolved, so a ray that lands on a Cap still lights up the host behind it. Otherwise aiming at
 	// a capped face would show no markers at all, which reads as "this buildable has no terminals"
@@ -88,6 +89,11 @@ void FACPRTerminalHighlight::Show( TWeakObjectPtr< AActor >& lastHost,
 		{
 			highlight.Selected |= static_cast< uint8 >( 1u << i );
 		}
+	}
+
+	if( bodyFace >= 0 && bodyFace < 8 )
+	{
+		highlight.BodyFaces = static_cast< uint8 >( 1u << bodyFace );
 	}
 
 	terminalHost->SetHighlight( highlight );
@@ -642,6 +648,11 @@ bool FACPRIndicators::Push( AFGBuildable* buildable, const IACPRTerminalHost* ho
 		else if( entry.TerminalIndex < 0 )
 		{
 			state = summary;
+			// §8.1's body mount: the face an Outlet hologram is on lights Selected.
+			if( highlight && entry.BodyFace >= 0 && entry.BodyFace < 8 && ( highlight->BodyFaces & ( 1u << entry.BodyFace ) ) )
+			{
+				state = EACPRIndicator::Selected;
+			}
 		}
 		else
 		{
@@ -655,6 +666,16 @@ bool FACPRIndicators::Push( AFGBuildable* buildable, const IACPRTerminalHost* ho
 					state = EACPRIndicator::Selected;
 				}
 			}
+		}
+		// §12: while a hologram has its target on this host, every other cue on the host drops to the
+		// coupled-unpowered strip. Selected and Powered are one hue and both saturate at a distance,
+		// so the target is read by brightness against its own host — the spec's rule, "hue carries
+		// state, brightness carries power" — not against every powered Rail in view. Dim, not off: off
+		// is a capped terminal's reading, and a capped terminal stays off, which is darker still. The
+		// host's open and powered readings are given up for as long as the aim holds, and no longer.
+		if( highlight && state != EACPRIndicator::Selected && state != EACPRIndicator::Capped )
+		{
+			state = EACPRIndicator::Coupled;
 		}
 		UMaterialInterface* const wanted = ACPRIndicatorMaterial( state );
 		if( !wanted )
