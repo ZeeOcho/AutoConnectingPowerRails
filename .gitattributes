@@ -1,7 +1,8 @@
+# Text files are stored and checked out with LF on every platform; Visual Studio and Unreal read LF.
+* text=auto eol=lf
+
 # Unreal assets and images are binary: no line-ending conversion, no text diffs
 *.uasset binary
 *.umap binary
 *.png binary
-
-# Text files keep LF in the repository, checked out in the platform's line ending
-* text=auto
+*.jpg binary

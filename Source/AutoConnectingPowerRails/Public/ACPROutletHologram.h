@@ -184,6 +184,8 @@ private:
 
 	/** Rail-local distance along the host, for the log and for the Guidelines snap. */
 	double mBodyAlong = 0.0;
+	/** The quantised face normal of this frame's body mount, world space; the face §12's highlight lights. */
+	FVector mBodyFaceNormal = FVector::ZeroVector;
 
 	mutable FACPRLogGate mValidityLog{ 24 };
 	/** The last aim IsValidHitResult saw; CheckValidFloor reads its normal (ACPRHologramCommon.h). */

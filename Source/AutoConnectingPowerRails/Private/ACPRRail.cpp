@@ -753,14 +753,39 @@ void AACPRRail::SetHighlight( const FACPRHighlight& highlight )
 	}
 }
 
+int32 AACPRRail::BodyFaceOf( const FVector& worldNormal ) const
+{
+	if( !mRailMeshComponent )
+	{
+		return INDEX_NONE;
+	}
+	// In the body mesh's own frame (acpr_meshes.py, make_rail_body: authored along +Z, the groove
+	// slots Cue_+X, Cue_-X, Cue_+Y, Cue_-Y in that order), so the answer does not depend on how the
+	// component is turned onto the actor.
+	const FVector local = mRailMeshComponent->GetComponentTransform().InverseTransformVectorNoScale( worldNormal ).GetSafeNormal();
+	if( local.IsNearlyZero() || FMath::Abs( local.Z ) >= FMath::Max( FMath::Abs( local.X ), FMath::Abs( local.Y ) ) )
+	{
+		return INDEX_NONE;
+	}
+	if( FMath::Abs( local.X ) >= FMath::Abs( local.Y ) )
+	{
+		return local.X >= 0.0 ? 0 : 1;
+	}
+	return local.Y >= 0.0 ? 2 : 3;
+}
+
 void AACPRRail::RefreshIndicators()
 {
-	// The body's groove ("Cue") summarises the network; each collar's groove segment (its own
-	// "Cue") is that terminal's state — the hue over the last 35 cm. The collars' pocket floors
-	// ("Power") are the network's power. The bridged collar carries the same slots, so the slice
-	// lights with its collar. Slots are addressed by material-slot name (B.2).
+	// The body's groove — one slot per face, "Cue_+X" … "Cue_-Y" — summarises the network, and the
+	// face an Outlet hologram body-mounts on lights Selected (§8.1, §12); each collar's groove
+	// segment (its own "Cue") is that terminal's state — the hue over the last 35 cm. The collars'
+	// pocket floors ("Power") are the network's power. The bridged collar carries the same slots,
+	// so the slice lights with its collar. Slots are addressed by material-slot name (B.2).
 	const FACPRIndicatorSlot slots[] = {
-		{ mRailMeshComponent.Get(), ACPRSlot::Cue(),   ACPR_INDICATOR_HOST },
+		{ mRailMeshComponent.Get(), ACPRSlot::CueFace( 0 ), ACPR_INDICATOR_HOST, false, 0 },
+		{ mRailMeshComponent.Get(), ACPRSlot::CueFace( 1 ), ACPR_INDICATOR_HOST, false, 1 },
+		{ mRailMeshComponent.Get(), ACPRSlot::CueFace( 2 ), ACPR_INDICATOR_HOST, false, 2 },
+		{ mRailMeshComponent.Get(), ACPRSlot::CueFace( 3 ), ACPR_INDICATOR_HOST, false, 3 },
 		{ mTerminalMeshA.Get(),     ACPRSlot::Cue(),   0 },
 		{ mTerminalMeshB.Get(),     ACPRSlot::Cue(),   1 },
 		{ mTerminalMeshA.Get(),     ACPRSlot::Power(), 0, true },

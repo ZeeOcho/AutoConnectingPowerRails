@@ -472,20 +472,11 @@ void AACPRWirelessOutlet::CaptureLinkEnds()
 		// so clients draw without the table.
 		const AActor* machine = connection->GetOwner();
 		bool known = false;
-		const FACPRSocketFit& fit = FACPRSocketTable::Get().Find( machine ? machine->GetClass() : nullptr, connection->GetFName(), &known );
-		const FQuat frame = connection->GetComponentQuat();
-		FACPRLinkTarget target;
-		target.Point = connection->GetComponentLocation();
-		target.Centre = target.Point + frame.RotateVector( fit.Offset );
-		target.Axis = frame.RotateVector( fit.Axis ).GetSafeNormal( 0.01, FVector::UpVector );
-		target.Radius = fit.Radius;
-		target.Core = fit.Core;
-		target.Bottom = fit.Bottom;
-		target.Top = fit.Top;
+		const FACPRLinkTarget target = ResolveLinkTarget( connection, &known );
 		mLinkTargets.Add( target );
 		ACPR_LOG( Verbose, WIRELESS, TEXT( "%s link end for %s / %s: %s fit r=%.1f core=%.1f %.1f..%.1f axis %s" ),
 			*GetName(), *GetNameSafe( machine ), *connection->GetName(), known ? TEXT( "table" ) : TEXT( "default" ),
-			fit.Radius, fit.Core, fit.Bottom, fit.Top, *fit.Axis.ToString() );
+			target.Radius, target.Core, target.Bottom, target.Top, *target.Axis.ToString() );
 		// The table was measured off the blueprint's meshes; what the game renders may be another
 		// mesh in another pose. Each mesh component of the machine, as it stands now, and how far
 		// its bounds are from the connection point — the check of that assumption.
@@ -511,6 +502,41 @@ void AACPRWirelessOutlet::CaptureLinkEnds()
 		}
 	}
 	RebuildLines();
+}
+
+FACPRLinkTarget AACPRWirelessOutlet::ResolveLinkTarget( const UFGPowerConnectionComponent* connection, bool* known )
+{
+	FACPRLinkTarget target;
+	if( !IsValid( connection ) )
+	{
+		if( known ) { *known = false; }
+		return target;
+	}
+	const AActor* machine = connection->GetOwner();
+	const FACPRSocketFit& fit = FACPRSocketTable::Get().Find( machine ? machine->GetClass() : nullptr, connection->GetFName(), known );
+	const FQuat frame = connection->GetComponentQuat();
+	target.Point = connection->GetComponentLocation();
+	target.Centre = target.Point + frame.RotateVector( fit.Offset );
+	target.Axis = frame.RotateVector( fit.Axis ).GetSafeNormal( 0.01, FVector::UpVector );
+	target.Radius = fit.Radius;
+	target.Core = fit.Core;
+	target.Bottom = fit.Bottom;
+	target.Top = fit.Top;
+	return target;
+}
+
+bool AACPRWirelessOutlet::OuterEndTransform( const FACPRLinkTarget& target, FTransform& out_transform )
+{
+	const double height = static_cast< double >( target.Top ) - static_cast< double >( target.Bottom );
+	const double radius = static_cast< double >( target.Radius );
+	if( height < 1.0 || radius <= 0.0 )
+	{
+		return false;
+	}
+	const FVector axis = target.Axis.GetSafeNormal( 0.01, FVector::UpVector );
+	out_transform = FTransform( FRotationMatrix::MakeFromX( axis ).ToQuat(), target.Centre + axis * target.Bottom,
+	                            FVector( height / 100.0, radius, radius ) );
+	return true;
 }
 
 void AACPRWirelessOutlet::OnRep_LinkTargets()
@@ -552,18 +578,15 @@ void AACPRWirelessOutlet::RebuildLines()
 			                       FVector( length / 100.0, across, across ) );
 			mLinkLines->AddInstance( line, /*bWorldSpace*/ true );
 		}
-		const double height = static_cast< double >( target.Top ) - static_cast< double >( target.Bottom );
-		const double radius = static_cast< double >( target.Radius );
-		if( ends && height >= 1.0 && radius > 0.0 )
+		FTransform outer;
+		if( ends && OuterEndTransform( target, outer ) )
 		{
-			const FVector axis = target.Axis.GetSafeNormal( 0.01, FVector::UpVector );
-			const FQuat along = FRotationMatrix::MakeFromX( axis ).ToQuat();
-			const FVector foot = target.Centre + axis * target.Bottom;
+			mLinkEnds->AddInstance( outer, /*bWorldSpace*/ true );
 			const double core = static_cast< double >( target.Core );
-			mLinkEnds->AddInstance( FTransform( along, foot, FVector( height / 100.0, radius, radius ) ), /*bWorldSpace*/ true );
-			if( mLinesPowered && inners && core > 0.0 && core < radius - 1.0 )
+			if( mLinesPowered && inners && core > 0.0 && core < static_cast< double >( target.Radius ) - 1.0 )
 			{
-				mLinkEndsInner->AddInstance( FTransform( along, foot, FVector( height / 100.0, core, core ) ), /*bWorldSpace*/ true );
+				// The same tube, Core across.
+				mLinkEndsInner->AddInstance( FTransform( outer.GetRotation(), outer.GetLocation(), FVector( outer.GetScale3D().X, core, core ) ), /*bWorldSpace*/ true );
 			}
 		}
 		ACPR_LOG( Verbose, WIRELESS, TEXT( "%s link target at %s | knob axis %s through %s r=%.1f core=%.1f %.1f..%.1f" ),

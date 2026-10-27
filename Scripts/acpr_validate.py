@@ -27,7 +27,9 @@ WHAT IT DOES
     4. CHECKS the link ends' socket table (Config/ACPR_Sockets.json): present, well-formed,
        and — when the project's game version is not the one it was measured on — whether
        any socket or mesh it depends on changed (a WARN, not a FAIL).
-    5. WRITES the whole pass to Scripts/Temp/acpr_validate_log.txt as well.
+    5. CHECKS the scripts themselves, statically: a module-level name read before the module
+       defines it would raise before the script's logging exists.
+    6. WRITES the whole pass to Scripts/Temp/acpr_validate_log.txt as well.
 
 RULES THE CHECKS FOLLOW
 
@@ -78,6 +80,8 @@ sets a property to nothing and reports success:
     AFGBuildableBeam::mSize/mDefaultLength/mMaxLength/mLengthPerCost  FGBuildableBeam.h:62-86
 """
 
+import ast
+import builtins
 import json
 import os
 import runpy
@@ -593,9 +597,11 @@ def audit_buildables():
                    rng is not None and abs(float(rng) - WIRELESS_RANGES[part]) < 0.5, str(rng))
             blockers = _get(cdo, "m_blocking_classes")
             _info(part + " mBlockingClasses", str([_name_of(c) for c in (blockers or [])]))
-            # §16.5: the two line materials the outlet swaps between, and the Powered value
-            # that tells them apart, read back off the instances acpr_materials.py made.
-            for prop, want in (("m_link_material", 0.0), ("m_link_material_powered", 1.0)):
+            # §16.5: the two line materials the outlet swaps between and the preview's solid
+            # line, each told apart by one parameter read back off the instances
+            # acpr_materials.py made.
+            for prop, param, want in (("m_link_material", "Powered", 0.0), ("m_link_material_powered", "Powered", 1.0),
+                                      ("m_link_material_preview", "Solid", 1.0)):
                 material = _get(cdo, prop)
                 try:
                     for loader in ("get_asset", "try_load"):
@@ -608,10 +614,10 @@ def audit_buildables():
                 if material is not None:
                     try:
                         powered = unreal.MaterialEditingLibrary.get_material_instance_scalar_parameter_value(
-                            material, "Powered")
+                            material, param)
                     except Exception as e:
                         powered = "<unreadable: {0}>".format(e)
-                _check("{0} {1} Powered = {2:.0f}".format(part, prop, want),
+                _check("{0} {1} {2} = {3:.0f}".format(part, prop, param, want),
                        isinstance(powered, float) and abs(powered - want) < 0.01,
                        "{0} -> {1}".format(_name_of(material) if material is not None else "<missing>", powered))
 
@@ -1050,6 +1056,48 @@ def verify_from_disk():
 
 # ---------------------------------------------------------------------------
 
+def audit_scripts():
+    """
+    I. The scripts themselves: a name read at module level before the module defines it (a
+    constant placed above the one it is built from) raises before the script's own logging
+    exists, so nothing but the editor's Output Log would say why. The check is static — the
+    files are parsed, not run — and names the file and line.
+    """
+    _log("=== I. scripts ===")
+    scripts_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else _temp_dir("..")
+    names = sorted(name for name in os.listdir(scripts_dir) if name.startswith("acpr_") and name.endswith(".py"))
+    for name in names:
+        path = os.path.join(scripts_dir, name)
+        try:
+            with open(path, "r", encoding="utf-8") as handle:
+                tree = ast.parse(handle.read(), filename=name)
+        except (OSError, SyntaxError) as e:
+            _check(name + " parses", False, str(e))
+            continue
+        defined = set(dir(builtins)) | {"__file__", "__name__", "unreal"}
+        hoisted = {node.name for node in tree.body if isinstance(node, (ast.FunctionDef, ast.ClassDef))}
+        early = []
+        for node in tree.body:
+            if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
+                continue
+            if isinstance(node, (ast.Import, ast.ImportFrom)):
+                for alias in node.names:
+                    defined.add((alias.asname or alias.name).split(".")[0])
+                continue
+            # Names the statement itself binds (loop and `with` targets, assignments, `except … as`,
+            # lambda arguments) count as defined for it; a name read here and bound only by a LATER
+            # statement is the fault.
+            stores = {sub.id for sub in ast.walk(node) if isinstance(sub, ast.Name) and isinstance(sub.ctx, ast.Store)}
+            stores |= {sub.name for sub in ast.walk(node) if isinstance(sub, ast.ExceptHandler) and sub.name}
+            stores |= {sub.arg for sub in ast.walk(node) if isinstance(sub, ast.arg)}
+            for sub in ast.walk(node):
+                if (isinstance(sub, ast.Name) and isinstance(sub.ctx, ast.Load)
+                        and sub.id not in defined and sub.id not in hoisted and sub.id not in stores):
+                    early.append("{0}:{1} {2}".format(name, sub.lineno, sub.id))
+            defined |= stores
+        _check(name + " module-level names defined before use", not early, "; ".join(early) if early else "")
+
+
 def main():
     _log("validation and unlock pass | FIX = {0}".format(FIX))
 
@@ -1075,7 +1123,8 @@ def main():
                             ("E. recipes", audit_recipes, (by_display,)),
                             ("F. unlock", audit_schematic, (vanilla, schematics)),
                             ("G. re-read", verify_from_disk, ()),
-                            ("H. socket table", audit_socket_table, ())):
+                            ("H. socket table", audit_socket_table, ()),
+                            ("I. scripts", audit_scripts, ())):
         try:
             fn(*args)
         except Exception as e:

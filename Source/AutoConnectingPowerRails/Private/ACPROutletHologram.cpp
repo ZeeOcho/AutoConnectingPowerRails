@@ -2,9 +2,9 @@
 
 #include "ACPROutletHologram.h"
 
-#include "ACPRRail.h"
 #include "ACPRDesignerSpace.h"
 #include "ACPRJunction.h"
+#include "ACPRRail.h"
 #include "ACPRTerminalComponent.h"
 #include "ACPRTerminalHost.h"
 #include "AutoConnectingPowerRails.h"
@@ -171,7 +171,17 @@ void AACPROutletHologram::UpdateTerminalHighlight( const FHitResult& hitResult )
 	spaceFilter.Enforce = true;
 	spaceFilter.Space = GetPlacementDesigner();
 
-	FACPRTerminalHighlight::Show( mHighlightHost, hitResult.GetActor(), mTargetTerminal.Get(), spaceFilter );
+	// §8.1's body mount lights the aimed face of the Rail's groove as well, along the whole body — the
+	// face is read from where the player stands, which for a Wireless Outlet is among the machines.
+	int32 bodyFace = INDEX_NONE;
+	if( mHasTarget && mMode == EACPROutletHostMode::Body )
+	{
+		if( const AACPRRail* rail = Cast< AACPRRail >( mTargetHost.Get() ) )
+		{
+			bodyFace = rail->BodyFaceOf( mBodyFaceNormal );
+		}
+	}
+	FACPRTerminalHighlight::Show( mHighlightHost, hitResult.GetActor(), mTargetTerminal.Get(), spaceFilter, nullptr, nullptr, bodyFace );
 }
 
 bool AACPROutletHologram::IsValidHitResult( const FHitResult& hitResult ) const
@@ -212,6 +222,7 @@ void AACPROutletHologram::ClearTarget()
 	mTargetTerminal = nullptr;
 	mTargetIndex = 0;
 	mBodyAlong = 0.0;
+	mBodyFaceNormal = FVector::ZeroVector;
 	mMode = EACPROutletHostMode::Terminal;
 }
 
@@ -356,6 +367,7 @@ bool AACPROutletHologram::TryBodyMount( const FHitResult& hitResult )
 	mTargetHost = rail;
 	mTargetIndex = 0;
 	mBodyAlong = along;
+	mBodyFaceNormal = faceNormal;
 	mHasTarget = true;
 
 	LogMount( TEXT( "ACCEPTED" ), TEXT( "body" ) );

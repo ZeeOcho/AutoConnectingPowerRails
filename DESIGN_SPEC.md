@@ -452,7 +452,8 @@ Outlet's placement rules and nothing else.
 
 - Targets one Rail body — the four longitudinal faces only, never a Junction body.
 - Bonds without a visible Power Line, changes no terminal state, does not shorten the host.
-- Orientation from the target face; ordinary rotation applies.
+- Orientation from the target face; ordinary rotation applies. While aiming, the target face's
+  groove lights as a selected terminal does (§12).
 - Slides freely, snaps to the 1 m grid on Guidelines, cannot be nudged.
 - Multiple Outlets per Rail wherever attachment checks pass.
 - Aiming at an end face resolves to terminal-mounted or invalid, never silently to a body
@@ -801,7 +802,14 @@ test for it.
   as much as the aimed one — on that terminal's own cue surfaces, at a strength that outshines a
   host already in the state the click produces. Capped, coupled and Outlet-occupied terminals
   never display as valid. There is no "could take" highlight: lighting every eligible terminal
-  read as a promise of coupling and was retired.
+  read as a promise of coupling and was retired. An Outlet body-mounting on a Rail (§8.1) lights
+  the aimed face's groove the same way, along the whole body. While a hologram has its target
+  on a host — a terminal or a body face — every other cue on that host drops to the
+  coupled-unpowered strip, capped terminals staying off: Selected and Powered are one hue and
+  both saturate at a distance, so the target is read by brightness against its own host, the
+  rule above, at the price of the host's open and powered readings for as long as the aim holds.
+  The body's groove is one cue slot per face for this, as the Junction's strips are. The face is the one thing about a body mount that cannot be read from the
+  hologram when the player stands far from it, as a Wireless Outlet is placed (§16.5).
 - Inline Junction and Outlet holograms preview the exact host and final orientation.
 - Invalid or ambiguous cases use vanilla-style red feedback with an appropriate disqualifier.
 - Free body position is the default, with **Snap to Guidelines** exposing the 1 m Rail-local or
@@ -1228,15 +1236,26 @@ cable. The outlet's indicator says which.
   and what it holds, at a glance. Local to the player looking; nothing replicates.
 - **Placement preview**: while a hologram is held, the player sees what §16.3 would decide the
   moment it is built.
+  - The link a placement would make is drawn as the **preview line**: solid, whatever the
+    network's power, and as bright as the selected cue (§12) — the same master as the link with
+    its dash overridden (`Solid`), so the two things the preview lights, the line and the aimed
+    face, read as one. The player judges a Wireless Outlet's reach from among the machines, far
+    from the hologram, where a bead every two seconds cannot be read. A link the placement would
+    *not* make stays the link's own faint dashed line, so the two readings cannot be confused.
   - Placing a *machine*: every outlet whose range reaches a power connection of the hologram shows
-    its range sphere. The outlet the machine would link to draws a powered line to that
+    its range sphere. The outlet the machine would link to draws the preview line to that
     connection. Every other outlet in range draws a faint line: the whole line when its path is
     clear (the outlet the machine would fall back to if the first one went away), cut short at the
     obstacle when it is not (what blocks it). A machine with no outlet in range sees nothing.
   - Placing an *outlet*: the hologram shows the tier's range as the sphere about the link origin,
-    a powered line to every machine connection it would take at construction (unwired, in range,
-    not held by a nearer outlet, clear) and a faint line cut short at the obstacle to every one in
-    range it is blocked from. Machines it would not touch draw nothing.
+    the preview line to every machine connection it would take at construction (unwired, in range,
+    not held by a nearer outlet, clear) together with the link end tube on that machine's socket,
+    fitted as the built outlet will fit it, and a faint line cut short at the obstacle to every
+    one in range it is blocked from. Machines it would not touch draw nothing. The hologram's own
+    body wears the same tube as a marker — wider and taller than the body, from inside the host
+    to past the link origin (the outlet's marker defaults) — so the hologram itself can be found
+    from a distance; it says "wireless connection" there as it does on a machine.
+    The face the hologram body-mounts on lights on the Rail (§8.1, §12).
   - The preview exists only while a local hologram does, and re-asks only when the hologram has
     moved or a link event has happened since its last answer; each answer is §16.4's bounded
     lookup, so invariant 17 holds — the preview follows the cursor the way the hologram itself
@@ -1292,8 +1311,13 @@ Neither persists.
   blueprint carries those links, and a placed copy has them and links at placement.
 - A powered outlet's lines show only the travelling bead and a band crawling up each linked
   socket; an unpowered outlet's a faint dashed line and standing rings on each socket.
-- Holding a machine hologram in range of two outlets shows both spheres, one powered line and one
-  faint; a wall between the machine and the second outlet cuts the faint line at the wall.
+- Holding a machine hologram in range of two outlets shows both spheres, one solid bright line
+  and one faint; a wall between the machine and the second outlet cuts the faint line at the wall.
+- Holding a Wireless Outlet hologram over a Rail from thirty metres away, among the machines: the
+  solid lines run to each machine it would take and end in a tube on its socket, the hologram's
+  own body wears a tube, and the Rail face under the hologram is lit along the whole body while
+  the Rail's other faces and its terminal segments are dim (a capped end stays off); the lines
+  are the same whether the Rail is powered or not.
 - Aiming at a built outlet in dismantle mode shows its sphere and its lines powered.
 - `acpr.WirelessRange 0` restores the tiers' own values and the links that go with them.
 

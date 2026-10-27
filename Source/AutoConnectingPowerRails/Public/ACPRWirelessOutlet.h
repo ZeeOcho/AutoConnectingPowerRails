@@ -153,6 +153,14 @@ public:
 	UPROPERTY( EditDefaultsOnly, Category = "ACPR|Wireless" )
 	TSoftObjectPtr< UMaterialInterface > mLinkMaterialPowered = TSoftObjectPtr< UMaterialInterface >( FSoftObjectPath(
 		TEXT( "/AutoConnectingPowerRails/Materials/MI_ACPR_LinkPowered.MI_ACPR_LinkPowered" ) ) );
+	/**
+	 * §16.5's placement preview: the link a placement would make, as a solid line as bright as the
+	 * selected cue (Solid 1 on the same master), readable from where the player stands to judge the
+	 * machines — far from the hologram. Never on a built outlet.
+	 */
+	UPROPERTY( EditDefaultsOnly, Category = "ACPR|Wireless" )
+	TSoftObjectPtr< UMaterialInterface > mLinkMaterialPreview = TSoftObjectPtr< UMaterialInterface >( FSoftObjectPath(
+		TEXT( "/AutoConnectingPowerRails/Materials/MI_ACPR_LinkPreview.MI_ACPR_LinkPreview" ) ) );
 
 	/**
 	 * §16.5's link end: the tube round a linked machine's power socket. Its fit — axis, offset,
@@ -194,8 +202,35 @@ public:
 	UPROPERTY( EditDefaultsOnly, Category = "ACPR|Wireless" )
 	float mRangeSphereAuthoredRadius = 50.0f;
 
+	/**
+	 * §16.5's placement preview marker: the link end tube round the hologram's own body, so the
+	 * hologram can be found from among the machines. Larger than the body on purpose — it is a
+	 * marker there, not a socket fit: the radius, and the tube's extent along the mounting normal
+	 * from inside the host (negative) to past the body. Visual tuning, judged in play.
+	 */
+	UPROPERTY( EditDefaultsOnly, Category = "ACPR|Wireless" )
+	float mPreviewMarkerRadius = 30.0f;
+	UPROPERTY( EditDefaultsOnly, Category = "ACPR|Wireless" )
+	float mPreviewMarkerBottom = -25.0f;
+	UPROPERTY( EditDefaultsOnly, Category = "ACPR|Wireless" )
+	float mPreviewMarkerTop = 48.0f;
+
 	/** The point the range is measured from and the lines are drawn from. */
 	FVector GetLinkOrigin() const;
+
+	/**
+	 * One link's far end from its connection: the socket fit (FACPRSocketTable, by the machine's
+	 * class and the connection's name) resolved to world space. What CaptureLinkEnds stores per
+	 * link, and what the placement preview draws for a link it would make.
+	 */
+	static FACPRLinkTarget ResolveLinkTarget( const UFGPowerConnectionComponent* connection, bool* known = nullptr );
+
+	/**
+	 * The outer link end tube's instance transform for a target — the link end mesh (100 uu along
+	 * +X, unit across) from Bottom to Top along the knob's axis through Centre, Radius across.
+	 * False when the fit has no height or radius to draw.
+	 */
+	static bool OuterEndTransform( const FACPRLinkTarget& target, FTransform& out_transform );
 
 	/** The current links, authority only: the machine connections whose hidden edge ends on this outlet's socket. */
 	const TArray< TWeakObjectPtr< UFGPowerConnectionComponent > >& GetLinks() const { return mLinks; }

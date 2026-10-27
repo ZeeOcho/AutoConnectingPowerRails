@@ -85,7 +85,7 @@ const AACPRWirelessOutlet* UACPRWirelessPreviewComponent::Rules() const
 
 bool UACPRWirelessPreviewComponent::EnsureLines()
 {
-	if( mPoweredLines && mFaintLines )
+	if( mPreviewLines && mFaintLines && mEnds )
 	{
 		return true;
 	}
@@ -97,18 +97,20 @@ bool UACPRWirelessPreviewComponent::EnsureLines()
 	AActor* owner = GetOwner();
 	USceneComponent* root = owner ? owner->GetRootComponent() : nullptr;
 	UStaticMesh* mesh = rules ? rules->mLinkLineMesh.LoadSynchronous() : nullptr;
-	UMaterialInterface* powered = rules ? rules->mLinkMaterialPowered.LoadSynchronous() : nullptr;
+	UStaticMesh* endMesh = rules ? rules->mLinkEndMesh.LoadSynchronous() : nullptr;
+	UMaterialInterface* preview = rules ? rules->mLinkMaterialPreview.LoadSynchronous() : nullptr;
 	UMaterialInterface* faint = rules ? rules->mLinkMaterial.LoadSynchronous() : nullptr;
-	if( !root || !mesh || !powered || !faint )
+	UMaterialInterface* end = rules ? rules->mLinkEndMaterial.LoadSynchronous() : nullptr;
+	if( !root || !mesh || !endMesh || !preview || !faint || !end )
 	{
 		mLinesMissing = true;
 		ACPR_LOG( Warning, WIRELESS_HOLO,
-			TEXT( "%s: preview lines need the link mesh and both link materials (mesh=%d powered=%d faint=%d) — run acpr_meshes.py and acpr_materials.py." ),
-			*GetNameSafe( owner ), mesh ? 1 : 0, powered ? 1 : 0, faint ? 1 : 0 );
+			TEXT( "%s: preview lines need the link meshes and materials (line mesh=%d end mesh=%d preview=%d faint=%d end=%d) — run acpr_meshes.py and acpr_materials.py." ),
+			*GetNameSafe( owner ), mesh ? 1 : 0, endMesh ? 1 : 0, preview ? 1 : 0, faint ? 1 : 0, end ? 1 : 0 );
 		return false;
 	}
 
-	auto make = [ & ]( const TCHAR* name, UMaterialInterface* material ) -> UInstancedStaticMeshComponent*
+	auto make = [ & ]( const TCHAR* name, UStaticMesh* staticMesh, UMaterialInterface* material ) -> UInstancedStaticMeshComponent*
 	{
 		UInstancedStaticMeshComponent* lines = NewObject< UInstancedStaticMeshComponent >( owner, name );
 		if( !lines )
@@ -125,13 +127,14 @@ bool UACPRWirelessPreviewComponent::EnsureLines()
 		lines->SetRenderCustomDepth( false );
 		lines->SetupAttachment( root );
 		lines->RegisterComponent();
-		lines->SetStaticMesh( mesh );
+		lines->SetStaticMesh( staticMesh );
 		lines->SetMaterial( 0, material );
 		return lines;
 	};
-	mPoweredLines = make( TEXT( "ACPRPreviewPoweredLines" ), powered );
-	mFaintLines = make( TEXT( "ACPRPreviewFaintLines" ), faint );
-	if( !mPoweredLines || !mFaintLines )
+	mPreviewLines = make( TEXT( "ACPRPreviewLines" ), mesh, preview );
+	mFaintLines = make( TEXT( "ACPRPreviewFaintLines" ), mesh, faint );
+	mEnds = make( TEXT( "ACPRPreviewEnds" ), endMesh, end );
+	if( !mPreviewLines || !mFaintLines || !mEnds )
 	{
 		mLinesMissing = true;
 		return false;
@@ -168,13 +171,12 @@ void UACPRWirelessPreviewComponent::Refresh()
 	{
 		return;
 	}
-	if( mPoweredLines )
+	for( UInstancedStaticMeshComponent* instances : { mPreviewLines.Get(), mFaintLines.Get(), mEnds.Get() } )
 	{
-		mPoweredLines->ClearInstances();
-	}
-	if( mFaintLines )
-	{
-		mFaintLines->ClearInstances();
+		if( instances )
+		{
+			instances->ClearInstances();
+		}
 	}
 	if( mMode == EMode::Machine )
 	{
@@ -234,10 +236,56 @@ void UACPRWirelessPreviewComponent::RefreshOutlet( UACPRWirelessLinkSubsystem* l
 	for( const FACPRPreviewLine& line : lines )
 	{
 		DrawLine( line.From, line.To, line.Chosen );
+		if( line.Chosen )
+		{
+			DrawEnd( line.Connection );
+		}
+	}
+	DrawHologramEnd( hologram );
+}
+
+void UACPRWirelessPreviewComponent::DrawEnd( const UFGPowerConnectionComponent* connection )
+{
+	if( !IsValid( connection ) || !EnsureLines() )
+	{
+		return;
+	}
+	// The built outlet's own fit for this socket (CaptureLinkEnds), so the preview's tube is the one
+	// that will stand there.
+	FTransform tube;
+	if( AACPRWirelessOutlet::OuterEndTransform( AACPRWirelessOutlet::ResolveLinkTarget( connection ), tube ) )
+	{
+		mEnds->AddInstance( tube, /*bWorldSpace*/ true );
 	}
 }
 
-void UACPRWirelessPreviewComponent::DrawLine( const FVector& from, const FVector& to, bool powered )
+void UACPRWirelessPreviewComponent::DrawHologramEnd( const AFGBuildableHologram* hologram )
+{
+	const AACPRWirelessOutlet* rules = Rules();
+	if( !IsValid( hologram ) || !rules || !EnsureLines() )
+	{
+		return;
+	}
+	// The tube the machines wear, as a marker round the outlet's own body: its axis the mounting
+	// normal (the hologram's +X, AACPROutletHologram), its size the outlet's marker defaults — wider
+	// and taller than the body, from inside the host to past the link origin — the one thing in the
+	// preview that says "the outlet is here" from a distance.
+	FACPRLinkTarget body;
+	body.Point = hologram->GetActorLocation();
+	body.Centre = body.Point;
+	body.Axis = hologram->GetActorForwardVector();
+	body.Radius = rules->mPreviewMarkerRadius;
+	body.Core = body.Radius;
+	body.Bottom = rules->mPreviewMarkerBottom;
+	body.Top = rules->mPreviewMarkerTop;
+	FTransform tube;
+	if( AACPRWirelessOutlet::OuterEndTransform( body, tube ) )
+	{
+		mEnds->AddInstance( tube, /*bWorldSpace*/ true );
+	}
+}
+
+void UACPRWirelessPreviewComponent::DrawLine( const FVector& from, const FVector& to, bool chosen )
 {
 	if( !EnsureLines() )
 	{
@@ -254,7 +302,7 @@ void UACPRWirelessPreviewComponent::DrawLine( const FVector& from, const FVector
 	const double across = FMath::Max( 0.1, static_cast< double >( rules ? rules->mLinkLineWidth : 1.5f ) * 0.5 );
 	const FTransform instance( FRotationMatrix::MakeFromX( delta / length ).ToQuat(), from,
 	                           FVector( length / 100.0, across, across ) );
-	UInstancedStaticMeshComponent* lines = powered ? mPoweredLines : mFaintLines;
+	UInstancedStaticMeshComponent* lines = chosen ? mPreviewLines : mFaintLines;
 	lines->AddInstance( instance, /*bWorldSpace*/ true );
 }
 
@@ -280,13 +328,12 @@ void UACPRWirelessPreviewComponent::ShowSpheres( const TSet< TWeakObjectPtr< AAC
 void UACPRWirelessPreviewComponent::Clear()
 {
 	ShowSpheres( TSet< TWeakObjectPtr< AACPRWirelessOutlet > >() );
-	if( mPoweredLines )
+	for( UInstancedStaticMeshComponent* instances : { mPreviewLines.Get(), mFaintLines.Get(), mEnds.Get() } )
 	{
-		mPoweredLines->ClearInstances();
-	}
-	if( mFaintLines )
-	{
-		mFaintLines->ClearInstances();
+		if( instances )
+		{
+			instances->ClearInstances();
+		}
 	}
 }
 

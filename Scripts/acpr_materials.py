@@ -115,16 +115,21 @@ CUE_SELECTED_PATH = MATERIAL_DIR + "/MI_ACPR_CueSelected"  # power colour, x8: t
 # per-instance data to hand over), a bead centred at c(t) travelling from one
 # bead-length before u = 0 to one bead-length past u = 1 every LINK_BEAD_PERIOD seconds — so it
 # grows out of the outlet and shrinks into the machine — and
-#     emissive = LinkColor * ( (1 - Powered) * dash(x) * LineBrightness + Powered * bead(u) * BeadBrightness ),
+#     emissive = LinkColor * ( (1 - Powered) * max(dash(x), Solid) * LineBrightness + Powered * bead(u) * BeadBrightness ),
 # where dash(x) is 1 on the first half of every 2 * BeadLength of the line and 0 on the second:
 # the unpowered line is dashed, dash and gap each one bead long, so it cannot be read as a lit
-# line and the powered bead is visibly the same unit of length.
+# line and the powered bead is visibly the same unit of length. Solid (0 or 1) overrides the
+# dash with an unbroken line: the placement preview's "this link will be made", which has to be
+# read from where the player stands to judge the machines — far from the hologram.
 # Powered is 0 on MI_ACPR_Link and 1 on MI_ACPR_LinkPowered; every other number is a scalar
 # parameter with the defaults below, which are the visual tuning in one place. "Brightness" is
 # a plain multiplier on the emissive colour — nothing falls off with distance or power.
 LINK_MASTER_PATH = MATERIAL_DIR + "/M_ACPR_Link"
 LINK_PATH = MATERIAL_DIR + "/MI_ACPR_Link"
 LINK_POWERED_PATH = MATERIAL_DIR + "/MI_ACPR_LinkPowered"
+# THE PREVIEW LINE (§16.5): the link a placement would make, solid and as bright as the selected
+# cue — the two things the preview lights, the line and the aimed face, read as one.
+LINK_PREVIEW_PATH = MATERIAL_DIR + "/MI_ACPR_LinkPreview"
 # THE LINK END wears the same master on the tube round a linked machine's socket, with the bead
 # a few centimetres long: the dashes become standing rings (unpowered) and the bead a band
 # crawling up the socket (powered) — the link's own visual unit, read at the machine.
@@ -138,7 +143,7 @@ LINK_END_INNER_PHASE = 0.5
 LINK_END_RING_SPACING = 3.0     # ring and gap, uu, each; also the crawling band's length
 LINK_END_RING_BRIGHTNESS = 0.0625  # the standing rings, like the faint line
 LINK_END_BAND_BRIGHTNESS = 2.0     # the crawling band: half the bead, a glow on a ring a few uu wide
-LINK_MASTER_PARAMS = ("LinkColor", "Powered", "LineBrightness", "BeadBrightness", "BeadLength", "BeadPeriod", "BeadPhase")
+LINK_MASTER_PARAMS = ("LinkColor", "Powered", "LineBrightness", "BeadBrightness", "BeadLength", "BeadPeriod", "BeadPhase", "Solid")
 LINK_LENGTH = 100.0         # the link unit mesh's authored length, uu (acpr_meshes.py, LINK_LENGTH)
 LINK_LINE_BRIGHTNESS = 0.0625  # the faint line's emissive, as a fraction of the cue's (CUE_EMISSIVE_STRENGTH)
 LINK_BEAD_BRIGHTNESS = 4.0    # the bead's peak: the line is 1.5 uu thin, so bloom — the glow — needs it well
@@ -185,6 +190,8 @@ CUE_OPEN_STRENGTH = 0.03
 # selected cue is a LAMP, 8 x CUE_EMISSIVE_STRENGTH. The in-game dial acpr.CueSelect multiplies
 # this live (1 = as shipped).
 CUE_SELECTED_STRENGTH = 8.0
+# The preview line (LINK_PREVIEW_PATH) is the selected cue's lamp, on a line.
+LINK_PREVIEW_BRIGHTNESS = CUE_SELECTED_STRENGTH
 
 # The three jobs land in slots BY NAME: "Body", "Cue" / "Cue_+X"…, "Accent", "Power" /
 # "Power_+X"…, as acpr_meshes.py names them. No index here.
@@ -716,7 +723,11 @@ def _build_link_master(material):
         "dashHalf":     ("MaterialExpressionSubtract", {"const_a": 0.5}, -300, 850),
         "dashSteep":    ("MaterialExpressionMultiply", {"const_b": 1000.0}, -100, 850),
         "dash":         ("MaterialExpressionSaturate", {}, 100, 850),
-        # emissive = colour * ((1 - powered) * dash * lineBrightness + powered * bead * beadBrightness)
+        # line = max(dash, Solid): Solid 1 is an unbroken line, whatever the bead length
+        "solid":        ("MaterialExpressionScalarParameter",
+                         {"parameter_name": "Solid", "default_value": 0.0}, -1400, 1000),
+        "line":         ("MaterialExpressionMax", {}, 200, 700),
+        # emissive = colour * ((1 - powered) * line * lineBrightness + powered * bead * beadBrightness)
         "unpowered":    ("MaterialExpressionOneMinus", {}, -1100, 500),
         "lineOn":       ("MaterialExpressionMultiply", {}, 300, 600),
         "lineTerm":     ("MaterialExpressionMultiply", {}, 500, 600),
@@ -758,7 +769,8 @@ def _build_link_master(material):
         ("dashHalf", "", "dashSteep", "A"),
         ("dashSteep", "", "dash", "Input"),
         ("powered", "", "unpowered", "Input"),
-        ("unpowered", "", "lineOn", "A"), ("dash", "", "lineOn", "B"),
+        ("dash", "", "line", "A"), ("solid", "", "line", "B"),
+        ("unpowered", "", "lineOn", "A"), ("line", "", "lineOn", "B"),
         ("lineOn", "", "lineTerm", "A"), ("lineBrightness", "", "lineTerm", "B"),
         ("bead", "", "beadOn", "A"), ("powered", "", "beadOn", "B"),
         ("beadOn", "", "beadTerm", "A"), ("beadBrightness", "", "beadTerm", "B"),
@@ -1188,13 +1200,15 @@ def _run():
     _apply(accent, ACCENT_PATH, accent_master, {}, ACCENT_SCALARS, {})
     _report_resolved_textures("accent", accent)
 
-    # §16.5's link line: the two states of the link master, Powered 0 and 1. Every other
-    # parameter is left at the master's default, so the tuning lives in one place.
+    # §16.5's link line: the two states of the link master, Powered 0 and 1, and the preview's
+    # solid line. Every other parameter is left at the master's default, so the tuning lives in one
+    # place.
     link_master = _link_master()
     if link_master is not None:
         end_scalars = {"BeadLength": LINK_END_RING_SPACING, "LineBrightness": LINK_END_RING_BRIGHTNESS,
                        "BeadBrightness": LINK_END_BAND_BRIGHTNESS}
         for path, scalars in ((LINK_PATH, {"Powered": 0.0}), (LINK_POWERED_PATH, {"Powered": 1.0}),
+                              (LINK_PREVIEW_PATH, {"Powered": 0.0, "Solid": 1.0, "LineBrightness": LINK_PREVIEW_BRIGHTNESS}),
                               (LINK_END_PATH, dict(end_scalars, Powered=0.0)),
                               (LINK_END_POWERED_PATH, dict(end_scalars, Powered=1.0)),
                               (LINK_END_INNER_PATH, dict(end_scalars, Powered=0.0, BeadPhase=LINK_END_INNER_PHASE)),
