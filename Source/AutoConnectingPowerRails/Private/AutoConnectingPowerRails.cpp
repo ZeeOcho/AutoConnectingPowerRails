@@ -12,12 +12,18 @@
 #include "FGBuildableSubsystem.h"
 #include "FGLightweightBuildableSubsystem.h"
 #include "HAL/IConsoleManager.h"
+#include "Misc/EngineVersion.h"
 #include "Hologram/FGBlueprintHologram.h"
 #include "Hologram/FGBuildableHologram.h"
 #include "Hologram/FGHologramBuildModeDescriptor.h"
 #include "Patching/NativeHookManager.h"
 
 DEFINE_LOG_CATEGORY( LogAutoConnectingPowerRails );
+
+// Set by AutoConnectingPowerRails.Build.cs from the Starter Project's Source/FactoryGame/currentVersion.txt.
+#ifndef ACPR_HEADERS_CL
+#define ACPR_HEADERS_CL 0
+#endif
 
 static TAutoConsoleVariable< int32 > CVarACPRTrace(
 	TEXT( "acpr.Trace" ), 0,
@@ -33,15 +39,36 @@ bool FACPRTrace::Enabled()
 
 void FAutoConnectingPowerRailsModule::StartupModule()
 {
-	ACPR_LOG( Display, MODULE, TEXT( "module loaded | BUILD=%s" ), ACPR_BUILD_STAMP() );
-
-	// SML's native hooks patch the shipping game's code. In the editor there is nothing to patch and no
-	// blueprint hologram to register on, so the hook is not installed there — the same guard Vertical
-	// Conveyor Auto-Connect ships with.
+	// Which game the binary was laid out for. The mod's classes derive from FactoryGame's, so their
+	// vtables are emitted HERE, from the headers of ACPR_HEADERS_CL (Build.cs, currentVersion.txt).
+	// A game update that adds a virtual to one of those classes or their interfaces leaves an old
+	// binary with a shorter table than the game calls into — CL520140's IFGUseableInterface::
+	// GetDependantHighPriorityReplicationActors did exactly that to 1.1.1 (issue #4: the call landed
+	// on a destructor). Nothing can detect that at runtime; a mismatch here is the line to read first.
+	//
+	// Only the game has a game changelist: in the editor FEngineVersion's changelist is the modding
+	// engine's own build number (87 for 5.6.1-css-87), so the editor prints the header changelist alone
+	// and compares nothing.
+	const uint32 headersChangelist = static_cast< uint32 >( ACPR_HEADERS_CL );
 	if( WITH_EDITOR )
 	{
+		ACPR_LOG( Display, MODULE, TEXT( "module loaded | BUILD=%s | headers CL%u (editor)" ),
+			ACPR_BUILD_STAMP(), headersChangelist );
 		return;
 	}
+	const uint32 gameChangelist = FEngineVersion::Current().GetChangelist();
+	ACPR_LOG( Display, MODULE, TEXT( "module loaded | BUILD=%s | headers CL%u, game CL%u" ),
+		ACPR_BUILD_STAMP(), headersChangelist, gameChangelist );
+	if( headersChangelist != 0 && gameChangelist != 0 && headersChangelist != gameChangelist )
+	{
+		ACPR_LOG( Warning, MODULE,
+			TEXT( "built against the game headers of CL%u, running on CL%u — if this game update changed a class the mod derives from, this build can crash; a build against the current headers is needed" ),
+			headersChangelist, gameChangelist );
+	}
+
+	// SML's native hooks patch the shipping game's code. In the editor there is nothing to patch and no
+	// blueprint hologram to register on, so the hook is not installed there (the WITH_EDITOR return
+	// above) — the same guard Vertical Conveyor Auto-Connect ships with.
 
 	// §10: register our manager on every blueprint hologram, before its BeginPlay, so it is in
 	// AFGBlueprintHologram::mOpenConnectionManagers (FGBlueprintHologram.h:159) when vanilla's

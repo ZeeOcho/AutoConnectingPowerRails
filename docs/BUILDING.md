@@ -1,6 +1,6 @@
 # Building
 
-The mod is a Game Feature plugin for the SML Starter Project (Satisfactory 1.2, SML 3.12,
+The mod is a Game Feature plugin for the SML Starter Project (Satisfactory 1.2 at CL520140, SML 3.12.1,
 Unreal Engine 5.6.1-CSS, Visual Studio 2022). It lives at
 `<project>\Mods\GameFeatures\AutoConnectingPowerRails\`.
 
@@ -51,6 +51,30 @@ the packaged mod loads. The table is committed — vanilla reference data, like 
 when the project's game version is not the one the table was measured on and a socket or mesh it
 depends on changed, and the script's log then lists every fit that changed against the previous
 table, which is the review.
+
+## After a game update
+
+The DLL carries the vtables of every FactoryGame class the mod derives from, laid out by the
+Starter Project's headers, so a game update can break a build that still loads: CL520140 added a
+virtual to `IFGUseableInterface` and 1.1.1 crashed in `~UObjectBase` when a player looked at a
+Rail (issue #4). When the game updates:
+
+1. Update the Starter Project to the SML commit whose headers match the game
+   (`Source\FactoryGame\currentVersion.txt` = the game's changelist), regenerate the Visual
+   Studio project files, build **Development Editor**, restart the editor.
+2. Diff the headers against the previous ones for the classes the mod derives from and their
+   interfaces (`FGBuildable.h`, `FGUseableInterface.h`, the hologram and beam headers, the classes
+   in `Config\AccessTransformers.ini`). A changed virtual or class layout means a rebuild and a
+   release; set `GameVersion` in the `.uplugin` to the new changelist and the SML dependency to
+   the SML release for it.
+3. In the game log, the module's first line reads `headers CL…, game CL…`; the two must match
+   for a released build, and a Warning follows when they do not. The editor prints
+   `headers CL… (editor)` and compares nothing.
+
+The modding engine (`5.6.1-CSS`) is re-released under the same name for new game versions
+(CL520140 needs `5.6.1-css-87` or later; `Engine\Build\Build.version` shows the build number as
+`Changelist`). Headers from a newer game than the engine fail in UnrealHeaderTool with an unknown
+type — install the latest release from `satisfactorymodding/UnrealEngine` before step 1's build.
 
 ## The editor restart rule
 
