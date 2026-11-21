@@ -1438,7 +1438,7 @@ several things not derivable from the documentation:
 | `Source/<Mod>/<Mod>.Build.cs` | Sets `CppStandard = Cpp20` and a curated list of FactoryGame transitive dependencies before adding `FactoryGame` and `SML`. Substantially more than a hand-written minimum; treat as authoritative. |
 | `Config/AccessTransformers.ini` | See below. |
 | `Config/PluginSettings.ini` | `+AdditionalNonUSFDirectories=Resources`. |
-| `.uplugin` | `FileVersion: 3`, `LoadingPhase: "Default"`, `BuiltInInitialFeatureState: "Active"`, `GameVersion` as a game changelist, SML pinned `^3.12.0`. |
+| `.uplugin` | `FileVersion: 3`, `LoadingPhase: "Default"`, `BuiltInInitialFeatureState: "Active"`, `GameVersion` as a game changelist — the one the build's FactoryGame headers are from — and SML pinned to the release built for that changelist (`^3.12.1` for CL520140). |
 
 **`Config/AccessTransformers.ini` is SML's mechanism for reaching private and protected
 FactoryGame members**, shipped empty. Its entries take the form
@@ -1482,6 +1482,22 @@ from a machine in another timezone, since zip entries store bare local wall-cloc
 offset — turns every later build into a correct no-op that still reports success. The tell is a build log with **zero Compile actions** for the shipping target;
 the fix is to stamp delivered files ahead of the receiving clock; the guard is the compile-time
 build stamp above.
+
+**The binary is tied to the game's headers, not only to its API.** Every mod class derives from
+FactoryGame classes, so the vtables of those classes and of their interfaces are emitted in the
+mod's DLL, laid out by the Starter Project's headers. A game update that appends a virtual to one
+of them compiles nothing differently in the mod and still breaks it: the game calls the new slot
+and an old binary has no such slot, so the call runs off the end of the table into whatever
+follows. `GameVersion`'s `>=` cannot express this, because which update breaks the layout is not
+known in advance. CL520140 was one — `IFGUseableInterface` gained the BlueprintNativeEvent
+`GetDependantHighPriorityReplicationActors`, called on the player's best usable actor, and 1.1.1's
+Rails crashed on it in `~UObjectBase` (issue #4). The rule: after a game update, update the
+Starter Project's headers, diff them for the classes in B.2's hierarchy and their interfaces, and
+rebuild and re-release if any vtable changed. In the game the module's first line prints the
+header changelist beside the running game's (`headers CL…, game CL…`) and warns when they differ,
+so a report's log says at once whether the build predates the game; the editor, whose engine
+version carries the modding engine's build number rather than a game changelist, prints the header
+changelist alone (`headers CL… (editor)`).
 
 **A clean checkout builds and binds with no manual step.** Every asset reference the code needs is
 a soft path default in C++; the editor scripts that generate meshes and materials are re-runnable

@@ -62,7 +62,19 @@ public class AutoConnectingPowerRails : ModuleRules
 			PublicDependencyModuleNames.AddRange(new string[] {/*"OnlineBlueprintSupport",*/ "AnimGraph"});
 		}
 		PublicDependencyModuleNames.AddRange(new string[] {"FactoryGame", "SML"});
-		
+
+		// The game changelist the FactoryGame headers in this Starter Project were taken from — the
+		// file SML's own build reads for FACTORYGAME_VERSION. The binary is laid out by these headers
+		// (every vtable of every class we derive from), so the module logs this number beside the
+		// running game's at startup and warns when they differ. 0 when the file is missing.
+		string headersVersionFile = Path.Combine(Target.ProjectFile!.Directory.FullName, "Source", "FactoryGame", "currentVersion.txt");
+		string headersVersion = File.Exists(headersVersionFile) ? File.ReadAllText(headersVersionFile).Trim() : "";
+		int headersChangelist;
+		if (!int.TryParse(headersVersion, out headersChangelist)) {
+			headersChangelist = 0;
+		}
+		PrivateDefinitions.Add("ACPR_HEADERS_CL=" + headersChangelist);
+
 		PublicIncludePaths.AddRange(new string[] {
 			// ... add public include paths required here ...
 		});
